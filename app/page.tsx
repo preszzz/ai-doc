@@ -21,7 +21,7 @@ export default function Home() {
       <p className="mb-8 sm:text-xl max-w-[800px] text-muted-foreground">
         This feature-packed documentation template, built with Next.js, offers a
         sleek and responsive design, perfect for all your project documentation
-        needs.
+        needs test.
       </p>
       <div className="flex flex-row items-center gap-5">
         <Link
