@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/contexts/theme-provider";
 import { Navbar } from "@/components/navbar";
-import { Space_Mono, Space_Grotesk, Host_Grotesk } from "next/font/google";
+import { Space_Mono, Host_Grotesk } from "next/font/google";
 import { Footer } from "@/components/footer";
 import "@/styles/globals.css";
 
-const HostGrotesk = Host_Grotesk({
+const host_grotesk = Host_Grotesk({
   subsets: ["latin"],
   variable: "--font-host-grotesk",
   display: "swap",
@@ -34,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${HostGrotesk.variable} ${GeistMono.variable} font-regular antialiased tracking-wide`}
+        className={`${host_grotesk.variable} ${GeistMono.variable} font-regular antialiased tracking-wide`}
         suppressHydrationWarning
       >
         <ThemeProvider

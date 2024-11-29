@@ -42,6 +42,15 @@ export const ROUTES: EachRoute[] = [
       },
     ],
   },
+  {
+    title: "Math",
+    href: "/math",
+    noLink: true,
+    items: [
+      { title: "Introduction", href: "/introduction" },
+      { title: "Installation", href: "/installation" },
+    ],
+  },
 ];
 
 type Page = { title: string; href: string };
@@ -55,6 +64,7 @@ function getRecurrsiveAllLinks(node: EachRoute) {
     const temp = { ...subNode, href: `${node.href}${subNode.href}` };
     ans.push(...getRecurrsiveAllLinks(temp));
   });
+  console.log(ans)
   return ans;
 }
 
