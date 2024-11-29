@@ -41,7 +41,7 @@ export function Navbar() {
             <div className="sm:flex hidden">
               <Logo />
             </div>
-            <div className="lg:flex hidden items-center gap-4 text-sm font-medium text-muted-foreground">
+            <div className="lg:flex hidden items-center gap-4 text-base font-medium text-muted-foreground">
               <NavMenu />
             </div>
           </div>

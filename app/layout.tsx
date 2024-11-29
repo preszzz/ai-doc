@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/contexts/theme-provider";
 import { Navbar } from "@/components/navbar";
-import { Space_Mono, Space_Grotesk } from "next/font/google";
+import { Space_Mono, Space_Grotesk, Host_Grotesk } from "next/font/google";
 import { Footer } from "@/components/footer";
 import "@/styles/globals.css";
 
-const GeistSans = Space_Grotesk({
+const HostGrotesk = Host_Grotesk({
   subsets: ["latin"],
-  variable: "--font-geist-sans",
+  variable: "--font-host-grotesk",
   display: "swap",
   weight: "400",
 });
@@ -34,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${GeistSans.variable} ${GeistMono.variable} font-regular antialiased tracking-wide`}
+        className={`${HostGrotesk.variable} ${GeistMono.variable} font-regular antialiased tracking-wide`}
         suppressHydrationWarning
       >
         <ThemeProvider
@@ -47,7 +47,7 @@ export default function RootLayout({
           <main className="sm:container mx-auto w-[90vw] h-auto scroll-smooth">
             {children}
           </main>
-          <Footer />
+          {/* <Footer /> */}
         </ThemeProvider>
       </body>
     </html>

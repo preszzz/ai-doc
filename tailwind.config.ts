@@ -24,7 +24,6 @@ const config = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        // background: "hsl(var(--background))",
         background: "var(--background)",
         foreground: "hsl(var(--foreground))",
         primary: {
@@ -63,7 +62,12 @@ const config = {
       },
       fontFamily: {
         code: ["var(--font-geist-mono)"],
-        regular: ["var(--font-geist-sans)"],
+        regular: ["var(--font-host-grotesk)"],
+      },
+      letterSpacing: {
+        tight: "var(--letter-spacing-tight)",
+        wide: "var(--letter-spacing-wide)",
+        widest: "var(--letter-spacing-widest)",
       },
       keyframes: {
         "accordion-down": {

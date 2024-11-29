@@ -9,16 +9,13 @@ import {
 import { Fragment } from "react";
 
 export default function DocsBreadcrumb({ paths }: { paths: string[] }) {
+  console.log(paths);
   return (
     <div className="pb-5">
       <Breadcrumb>
         <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink>Docs</BreadcrumbLink>
-          </BreadcrumbItem>
           {paths.map((path, index) => (
             <Fragment key={path}>
-              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 {index < paths.length - 1 ? (
                   <BreadcrumbLink className="a">
@@ -30,6 +27,7 @@ export default function DocsBreadcrumb({ paths }: { paths: string[] }) {
                   </BreadcrumbPage>
                 )}
               </BreadcrumbItem>
+              {index < paths.length - 1 && <BreadcrumbSeparator />}
             </Fragment>
           ))}
         </BreadcrumbList>

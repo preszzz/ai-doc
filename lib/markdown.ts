@@ -107,7 +107,7 @@ function sluggify(text: string) {
 }
 
 function getDocsContentPath(slug: string) {
-  return path.join(process.cwd(), "/contents/docs/", `${slug}/index.mdx`);
+  return path.join(process.cwd(), "/contents/docs/", `${slug}.mdx`);
 }
 
 function justGetFrontmatterFromMD<Frontmatter>(rawMd: string): Frontmatter {
@@ -133,8 +133,7 @@ export async function getAllChilds(pathString: string) {
         process.cwd(),
         "/contents/docs/",
         prevHref,
-        it.href,
-        "index.mdx",
+        `${it.href}.mdx`
       );
       const raw = await fs.readFile(totalPath, "utf-8");
       return {
