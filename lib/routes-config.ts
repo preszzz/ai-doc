@@ -64,7 +64,7 @@ function getRecurrsiveAllLinks(node: EachRoute) {
     const temp = { ...subNode, href: `${node.href}${subNode.href}` };
     ans.push(...getRecurrsiveAllLinks(temp));
   });
-  console.log(ans)
+  // console.log(ans)
   return ans;
 }
 

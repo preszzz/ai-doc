@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/contexts/theme-provider";
 import { Navbar } from "@/components/navbar";
 import { Space_Mono, Host_Grotesk } from "next/font/google";
-import { Footer } from "@/components/footer";
+// import { Footer } from "@/components/footer";
 import "@/styles/globals.css";
 
 const host_grotesk = Host_Grotesk({
   subsets: ["latin"],
   variable: "--font-host-grotesk",
   display: "swap",
-  weight: "400",
+  weight: ["400", "700"],
+  fallback: ["system-ui"]
 });
 
 const GeistMono = Space_Mono({
