@@ -18,13 +18,15 @@ export default function SubLink({
   noLink,
   level,
   isSheet,
-}: EachRoute & { level: number; isSheet: boolean }) {
+  index,
+}: EachRoute & { level: number; isSheet: boolean; index?: number }) {
   const path = usePathname();
-  const [isOpen, setIsOpen] = useState(level == 0);
+  const [isOpen, setIsOpen] = useState(level === 0 && index !== 0);
 
   useEffect(() => {
-    if (path == href || path.includes(href)) setIsOpen(true);
-  }, [href, path]);
+
+    if (index !== 0 && (path == href || path.includes(href))) setIsOpen(true);
+  }, [href, path, index]);
 
   const Comp = (
     <Anchor
@@ -42,7 +44,7 @@ export default function SubLink({
       Comp
     )
   ) : (
-    <h4 className="font-medium sm:text-sm text-primary">{title}</h4>
+    <h4 className="font-semibold sm:text-[0.95rem] text-primary">{title}</h4>
   );
 
   if (!items) {
@@ -67,7 +69,7 @@ export default function SubLink({
         <CollapsibleContent>
           <div
             className={cn(
-              "flex flex-col items-start sm:text-sm dark:text-stone-300/85 text-stone-800 ml-0.5 mt-2.5 gap-3",
+              "flex flex-col items-start sm:text-[0.95rem] dark:text-stone-300/85 text-stone-800 ml-0.5 mt-2.5 gap-3",
               level > 0 && "pl-4 border-l ml-1.5"
             )}
           >

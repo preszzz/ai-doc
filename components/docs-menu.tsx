@@ -16,7 +16,9 @@ export default function DocsMenu({ isSheet = false }) {
           href: `/docs${item.href}`,
           level: 0,
           isSheet,
+          index,
         };
+        // console.log(modifiedItems)
         return <SubLink key={item.title + index} {...modifiedItems} />;
       })}
     </div>

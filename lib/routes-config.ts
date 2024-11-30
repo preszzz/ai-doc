@@ -49,23 +49,35 @@ export const ROUTES: EachRoute[] = [
     items: [
       { title: "Introduction", href: "/introduction" },
       { title: "Installation", href: "/installation" },
+      {
+        title: "Components",
+        href: "/components",
+        items: [
+          { title: "Stepper", href: "/stepper" },
+          { title: "Tabs", href: "/tabs" },
+          { title: "Note", href: "/note" },
+          { title: "Code Block", href: "/code-block" },
+          { title: "Image & Link", href: "/image-link" },
+          { title: "Custom", href: "/custom" },
+        ],
+      },
     ],
   },
 ];
 
 type Page = { title: string; href: string };
 
-function getRecurrsiveAllLinks(node: EachRoute) {
+function getRecursiveAllLinks(node: EachRoute) {
   const ans: Page[] = [];
   if (!node.noLink) {
     ans.push({ title: node.title, href: node.href });
   }
   node.items?.forEach((subNode) => {
     const temp = { ...subNode, href: `${node.href}${subNode.href}` };
-    ans.push(...getRecurrsiveAllLinks(temp));
+    ans.push(...getRecursiveAllLinks(temp));
   });
   // console.log(ans)
   return ans;
 }
 
-export const page_routes = ROUTES.map((it) => getRecurrsiveAllLinks(it)).flat();
+export const page_routes = ROUTES.map((it) => getRecursiveAllLinks(it)).flat();

@@ -9,8 +9,8 @@
   --font-size-2xl: 1.5rem;
 
   --letter-spacing-tight: -.015em;
-  --letter-spacing-wide: 0.05em;
-  --letter-spacing-widest: 0.125em;
+  --letter-spacing-wide: 0.045em;
+  --letter-spacing-widest: 0.115em;
 }
 
 @tailwind base;
