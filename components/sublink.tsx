@@ -44,7 +44,7 @@ export default function SubLink({
       Comp
     )
   ) : (
-    <h4 className="font-semibold sm:text-[0.95rem] text-primary">{title}</h4>
+    <h4 className="font-semibold sm:text-[0.95rem] text-primary text-start pr-2">{title}</h4>
   );
 
   if (!items) {

@@ -12,20 +12,27 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateMetadata(props: PageProps) {
-  const params = await props.params;
+export async function generateMetadata({params}: PageProps) {
+  const {slug} = await params
 
-  const {
-    slug
-  } = params;
+  try {
+    const res = await getBlogForSlug(slug);
+    if (!res) return {
+      title: 'Not Found',
+      description: 'The requested page could not be found',
+    };
 
-  const res = await getBlogForSlug(slug);
-  if (!res) return null;
-  const { frontmatter } = res;
-  return {
-    title: frontmatter.title,
-    description: frontmatter.description,
-  };
+    const { frontmatter } = res;
+    return {
+      title: frontmatter.title,
+      description: frontmatter.description,
+    };
+  } catch {
+    return {
+      title: 'Error',
+      description: 'An error occurred while loading the page',
+    }
+  }
 }
 
 export async function generateStaticParams() {

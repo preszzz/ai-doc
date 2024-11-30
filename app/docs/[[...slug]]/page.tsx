@@ -39,21 +39,28 @@ export default async function DocsPage(props: PageProps) {
   );
 }
 
-export async function generateMetadata(props: PageProps) {
-  const params = await props.params;
-
-  const {
-    slug = []
-  } = params;
-
+export async function generateMetadata({params}: PageProps) {
+  const {slug} = await params
   const pathName = slug.join("/");
-  const res = await getDocsForSlug(pathName);
-  if (!res) return null;
-  const { frontmatter } = res;
-  return {
-    title: frontmatter.title,
-    description: frontmatter.description,
-  };
+
+  try {
+    const res = await getDocsForSlug(pathName);
+    if (!res) return {
+      title: 'Not Found',
+      description: 'The requested page could not be found',
+    };
+
+    const { frontmatter } = res;
+    return {
+      title: frontmatter.title,
+      description: frontmatter.description,
+    };
+  } catch {
+    return {
+      title: 'Error',
+      description: 'An error occurred while loading the page',
+    }
+  }
 }
 
 export function generateStaticParams() {
