@@ -2,6 +2,8 @@ import { compileMDX } from "next-mdx-remote/rsc";
 import path from "path";
 import { promises as fs } from "fs";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import rehypePrism from "rehype-prism-plus";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeSlug from "rehype-slug";
@@ -10,6 +12,7 @@ import { page_routes } from "./routes-config";
 import ROUTES from "@/utils/routes-map";
 import { visit } from "unist-util-visit";
 import matter from "gray-matter";
+import 'katex/dist/katex.min.css';
 
 // custom components imports
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,9 +51,13 @@ async function parseMdx<Frontmatter>(rawMdx: string) {
           rehypePrism,
           rehypeSlug,
           rehypeAutolinkHeadings,
+          rehypeKatex,
           postProcess,
         ],
-        remarkPlugins: [remarkGfm],
+        remarkPlugins: [
+          remarkGfm, 
+          remarkMath,
+        ],
       },
     },
     components,
