@@ -40,30 +40,8 @@ const ROUTES: EachRoute[] = [
         href: "/math",
         noLink: true,
         items: [
-            {
-                title: "Linear Algebra",
-                href: "/linear-algebra",
-                items: [
-                    { title: "Stepper", href: "/stepper" },
-                    { title: "Tabs", href: "/tabs" },
-                    { title: "Note", href: "/note" },
-                    { title: "Code Block", href: "/code-block" },
-                    { title: "Image & Link", href: "/image-link" },
-                    { title: "Custom", href: "/custom" },
-                ],
-            },
-            {
-                title: "Calculus",
-                href: "/calculus",
-                items: [
-                    { title: "Stepper", href: "/stepper" },
-                    { title: "Tabs", href: "/tabs" },
-                    { title: "Note", href: "/note" },
-                    { title: "Code Block", href: "/code-block" },
-                    { title: "Image & Link", href: "/image-link" },
-                    { title: "Custom", href: "/custom" },
-                ],
-            },
+            { title: "Linear Algebra", href: "/linear-algebra" },
+            { title: "Calculus", href: "/calculus" },
             {
                 title: "Statistics",
                 href: "/statistics",
