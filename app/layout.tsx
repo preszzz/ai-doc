@@ -5,7 +5,7 @@ import { Space_Mono, Host_Grotesk } from "next/font/google";
 // import { Footer } from "@/components/footer";
 import "@/styles/globals.css";
 
-const host_grotesk = Host_Grotesk({
+const sansFont = Host_Grotesk({
   subsets: ["latin"],
   variable: "--font-host-grotesk",
   display: "swap",
@@ -13,7 +13,7 @@ const host_grotesk = Host_Grotesk({
   fallback: ["system-ui"]
 });
 
-const GeistMono = Space_Mono({
+const monoFont = Space_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
   display: "swap",
@@ -21,8 +21,8 @@ const GeistMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AriaDocs - Template",
-  metadataBase: new URL("https://ariadocs.vercel.app/"),
+  title: "PresDocs",
+  metadataBase: new URL("https://preswork.vercel.app/"),
   description:
     "This comprehensive documentation template, crafted with Next.js and available as open-source, delivers a sleek and responsive design, tailored to meet all your project documentation requirements.",
 };
@@ -35,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${host_grotesk.variable} ${GeistMono.variable} font-regular antialiased tracking-wide`}
+        className={`${sansFont.variable} ${monoFont.variable} font-regular antialiased tracking-wide`}
         suppressHydrationWarning
       >
         <ThemeProvider
