@@ -12,7 +12,6 @@ import { page_routes } from "./routes-config";
 import ROUTES from "@/utils/routes-map";
 import { visit } from "unist-util-visit";
 import matter from "gray-matter";
-import 'katex/dist/katex.min.css';
 
 // custom components imports
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -157,10 +156,23 @@ export async function getAllChilds(pathString: string) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const preProcess = () => (tree: any) => {
   visit(tree, (node) => {
+    // Handle code blocks
     if (node?.type === "element" && node?.tagName === "pre") {
       const [codeEl] = node.children;
       if (codeEl.tagName !== "code") return;
-      node.raw = codeEl.children?.[0].value;
+      
+      // Check if this is actually a math block
+      if (codeEl.properties?.className?.includes("language-math")) {
+        // Convert it to a math display block
+        node.properties = { className: ["math", "math-display"] };
+        node.children = [{
+          type: "text",
+          value: codeEl.children?.[0].value
+        }];
+      } else {
+        // Regular code block processing
+        node.raw = codeEl.children?.[0].value;
+      }
     }
   });
 };

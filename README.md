@@ -2,7 +2,6 @@
 
 This feature-packed documentation template, built with Next.js, offers a sleek and responsive design, perfect for all your project documentation needs.
 
-<img src="./public/public-og.png" />
 
 <br/>
 

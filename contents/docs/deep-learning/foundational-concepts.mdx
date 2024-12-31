@@ -1,0 +1,115 @@
+---
+title: Foundational Concepts in Deep Learning
+---
+
+## Table of Contents
+1. [Introduction to Artificial Neural Networks](#introduction-to-artificial-neural-networks)
+2. [Activation Functions](#activation-functions)
+3. [Loss Functions and Optimization](#loss-functions-and-optimization)
+
+---
+
+## 1. Introduction to Artificial Neural Networks
+Artificial Neural Networks (ANNs) are the building blocks of deep learning. Inspired by the biological brain, ANNs consist of interconnected neurons that process information and learn patterns from data.
+
+### Key Concepts
+- **Perceptron:**
+  - A single-layer neural network.
+  - Models a linear decision boundary but cannot solve non-linear problems (e.g., XOR problem).
+- **Multi-layer Perceptrons (MLP):**
+  - Combines multiple perceptrons in layers.
+  - Solves non-linear problems using hidden layers and non-linear activation functions.
+- **Neurons and Weights:**
+  - Each neuron receives input, applies weights, adds bias, and passes the result through an activation function.
+
+### Mathematical Representation
+Given inputs $x_1$, $x_2$, $\ldots$, $x_n$ with weights $w_1$, $w_2$, $\ldots$, $w_n$, the output $y$ of a perceptron is:
+$$
+z = \sum_{i=1}^{n} w_i x_i + b
+$$
+
+$$
+y = f(z)
+$$
+Where $f$ is the activation function.
+
+---
+
+## 2. Activation Functions
+Activation functions introduce non-linearity into the network, enabling it to learn complex patterns.
+
+### Common Activation Functions
+- **Sigmoid:**
+ $$
+  f(x) = \frac{1}{1 + e^{-x}}
+ $$
+  - Output range: (0, 1).
+  - Pros: Smooth gradients.
+  - Cons: Vanishing gradient problem.
+
+- **ReLU (Rectified Linear Unit):**
+ $$
+  f(x) = \max(0, x)
+ $$
+  - Output range: $[0, \infty)$.
+  - Pros: Efficient and prevents vanishing gradients.
+  - Cons: Can lead to "dead neurons."
+
+- **Tanh:**
+ $$
+  f(x) = \tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}
+ $$
+  - Output range: (-1, 1).
+  - Pros: Centered at zero, smooth gradients.
+  - Cons: Suffers from vanishing gradients for large inputs.
+
+- **Softmax:**
+ $$
+  f_i(x) = \frac{e^{x_i}}{\sum_{j} e^{x_j}}
+ $$
+  - Used for multi-class classification.
+  - Converts logits into probabilities.
+
+### Usage Guidelines
+- **ReLU:** Default for hidden layers.
+- **Softmax:** For output layers in multi-class classification.
+- **Sigmoid/Tanh:** For binary classification or specific architectures.
+
+---
+
+## 3. Loss Functions and Optimization
+Loss functions measure the difference between the predicted output and the ground truth. Optimization algorithms minimize this loss by adjusting the weights and biases.
+
+### Common Loss Functions
+- **Mean Squared Error (MSE):**
+ $$
+  \text{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+ $$
+  - Used for regression tasks.
+  - Penalizes large errors.
+
+- **Cross-Entropy Loss:**
+ $$
+  <!-- \mathcal{L} = -\frac{1}{n} \sum_{i=1}^{n} \left[ y_i \log(\hat{y}_i) + (1 - y_i) \log(1 - \hat{y}_i) \right] -->
+ $$
+  - Commonly used for classification tasks.
+
+### Optimization Algorithms
+- **Gradient Descent:**
+  Iteratively adjusts weights based on the gradient of the loss function:
+ $$
+  w = w - \alpha \nabla \mathcal{L}
+ $$
+  Where $\alpha$ is the learning rate.
+
+- **Variants of Gradient Descent:**
+  - **Stochastic Gradient Descent (SGD):** Updates weights for each training example.
+  - **Mini-batch Gradient Descent:** Updates weights using small batches of data.
+  - **Adam (Adaptive Moment Estimation):**
+    - Combines momentum and RMSProp for adaptive learning rates.
+    - Efficient and widely used.
+
+---
+
+### Summary
+The foundational concepts discussed here lay the groundwork for understanding and building deep learning models. Mastery of these concepts ensures a strong understanding of neural network design and optimization.
