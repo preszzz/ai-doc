@@ -24,7 +24,6 @@ export default function SubLink({
   const [isOpen, setIsOpen] = useState(level === 0 && index !== 0);
 
   useEffect(() => {
-
     if (index !== 0 && (path == href || path.includes(href))) setIsOpen(true);
   }, [href, path, index]);
 
@@ -55,7 +54,7 @@ export default function SubLink({
     <div className="flex flex-col gap-1 w-full">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger className="w-full pr-5">
-          <div className="flex items-center justify-between cursor-pointer w-full">
+          <div className="flex items-center justify-between text-start cursor-pointer w-full">
             {titleOrLink}
             <span>
               {!isOpen ? (
