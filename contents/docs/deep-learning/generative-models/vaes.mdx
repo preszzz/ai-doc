@@ -1,0 +1,120 @@
+---
+title: Variational Autoencoders (VAEs)
+---
+
+Variational Autoencoders (VAEs) are a class of generative models that learn to encode data into a latent space and decode it back to reconstruct the input. Unlike traditional autoencoders, VAEs impose a probabilistic structure on the latent space, enabling the generation of new data samples.
+
+---
+
+## Key Concepts
+
+### Probabilistic Latent Space
+- In VAEs, the encoder maps input data $x$ to a probability distribution over the latent space, rather than a single point.
+- The latent space follows a prior distribution, typically a Gaussian:
+  $$
+  z \sim \mathcal{N}(\mu, \sigma^2)
+  $$
+
+### Generative Process
+1. Sample latent vector $z$ from the prior distribution.
+2. Decode $z$ to reconstruct the data:
+  $$
+  \hat{x} = D(z)
+  $$
+
+### Components of VAEs
+1. **Encoder (Inference Network)**:
+  - Encodes input data $x$ into the parameters of the latent distribution (mean $\mu$ and standard deviation $\sigma$):
+    $$
+    q(z \mid x) = \mathcal{N}(\mu(x), \sigma^2(x))
+    $$
+
+2. **Decoder (Generative Network)**:
+  - Generates data $\hat{x}$ from a latent vector $z$:
+    $$
+    p(x \mid z)
+    $$
+
+---
+
+## Loss Function
+
+The VAE loss consists of two terms:
+1. **Reconstruction Loss**:
+  - Measures how well the decoded data $\hat{x}$ matches the original input $x$:
+    $$
+    \mathcal{L}_{\text{reconstruction}} = -\mathbb{E}_{q(z \mid x)} [\log p(x \mid z)]
+    $$
+  - For image data, this is often implemented using binary cross-entropy or mean squared error.
+
+2. **KL Divergence**:
+  - Regularizes the latent space by minimizing the divergence between the learned distribution $q(z \mid x)$ and the prior $p(z)$:
+    $$
+    \mathcal{L}_{\text{KL}} = D_{\text{KL}}(q(z \mid x) \parallel p(z))
+    $$
+  - Ensures the latent space follows a Gaussian distribution.
+
+### Total Loss
+The combined loss is:
+$$
+\mathcal{L}_{\text{VAE}} = \mathcal{L}_{\text{reconstruction}} + \mathcal{L}_{\text{KL}}
+$$
+
+---
+
+## Sampling and Reparameterization Trick
+- Directly sampling $z \sim \mathcal{N}(\mu, \sigma^2)$ is non-differentiable.
+- The reparameterization trick makes this process differentiable:
+  $$
+  z = \mu + \sigma \odot \epsilon, \quad \epsilon \sim \mathcal{N}(0, I)
+  $$
+  Where $\odot$ denotes element-wise multiplication.
+
+---
+
+## Applications
+1. **Data Generation**:
+  - Generate new data samples resembling the training set (e.g., images, text).
+2. **Anomaly Detection**:
+  - Identify data points with low reconstruction probabilities as anomalies.
+3. **Latent Space Manipulation**:
+  - Modify latent vectors to control generative outputs (e.g., interpolate between two images).
+4. **Semi-Supervised Learning**:
+  - Use latent representations as features for downstream tasks.
+
+---
+
+## Advantages
+- Smooth and continuous latent space.
+- Capable of both reconstruction and data generation.
+- Probabilistic nature provides uncertainty estimates.
+
+---
+
+## Challenges
+- Reconstructions may lack sharpness compared to GANs.
+- Tuning the balance between reconstruction loss and KL divergence can be difficult.
+- Limited flexibility in modeling complex data distributions due to Gaussian assumptions.
+
+---
+
+## Extensions of VAEs
+1. **Beta-VAE**:
+  - Introduces a scaling factor $\beta$ for the KL divergence term to control the trade-off between reconstruction and disentanglement:
+    $$
+    \mathcal{L}_{\text{Beta-VAE}} = \mathcal{L}_{\text{reconstruction}} + \beta \mathcal{L}_{\text{KL}}
+    $$
+
+2. **Conditional VAE (CVAE)**:
+  - Conditions the generative process on additional inputs (e.g., class labels):
+    $$
+    p(x \mid z, c)
+    $$
+
+3. **Vector Quantized VAE (VQ-VAE)**:
+  - Uses discrete latent variables, enabling applications in image synthesis and speech processing.
+
+---
+
+## Summary
+Variational Autoencoders combine probabilistic modeling with deep learning to create a versatile framework for generative tasks. Their smooth latent space and probabilistic interpretations make VAEs a fundamental tool in modern generative modeling, though they are often complemented by other techniques like GANs for sharper outputs.

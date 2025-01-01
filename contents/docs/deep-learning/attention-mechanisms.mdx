@@ -1,0 +1,101 @@
+---
+title: Attention Mechanisms
+---
+Attention mechanisms revolutionized deep learning, particularly in handling sequential data, by enabling models to focus on specific parts of the input sequence. Unlike traditional recurrent architectures, attention allows models to dynamically weigh the importance of different inputs.
+
+---
+
+## Key Concepts
+
+### Motivation
+In tasks like machine translation, not all input words are equally important for generating an output. Attention addresses this by:
+- Assigning weights to input elements.
+- Enabling the model to "attend" to relevant parts of the input sequence.
+
+### Core Idea
+For each output, the attention mechanism computes a weighted sum of all input representations:
+$$
+\text{Attention}(Q, K, V) = \text{Softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+$$
+Where:
+- $Q$ (Query): Representation of the current output element.
+- $K$ (Key): Representation of input elements.
+- $V$ (Value): Actual information corresponding to each input.
+- $d_k$: Dimension of the key vectors, used for scaling.
+
+---
+
+## Self-Attention
+In self-attention, the query, key, and value are derived from the same input sequence. This allows the model to compute dependencies within the sequence.
+
+### Computation Steps
+1. Compute similarity scores between the query and all keys:
+  $$
+  \text{Score}(q, k) = q \cdot k
+  $$
+2. Normalize the scores using softmax:
+  $$
+  \alpha_i = \frac{\exp(\text{Score}(q, k_i))}{\sum_{j} \exp(\text{Score}(q, k_j))}
+  $$
+3. Compute the weighted sum of values:
+  $$
+  z = \sum_{i} \alpha_i v_i
+  $$
+
+---
+
+## Multi-Head Attention
+Instead of using a single attention function, multi-head attention splits the input into multiple heads, applies attention independently, and concatenates the results.
+
+$$
+\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)W^O
+$$
+Where:
+- Each head is computed as:
+  $$
+  \text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)
+  $$
+- $W_i^Q, W_i^K, W_i^V$: Learnable projection matrices for queries, keys, and values.
+
+---
+
+## Applications of Attention
+1. **Machine Translation**:
+  - Enables the model to focus on relevant words in the source sentence while translating.
+2. **Text Summarization**:
+  - Highlights the most important parts of the input for generating concise summaries.
+3. **Question Answering**:
+  - Focuses on relevant portions of the context to answer a question.
+4. **Image Captioning**:
+  - Applies attention over visual regions to describe images.
+
+---
+
+## Transformers and Attention
+Transformers, introduced in the paper "Attention is All You Need," leverage self-attention to replace recurrence entirely, making them faster and more scalable.
+
+### Encoder-Decoder Attention
+1. **Encoder Self-Attention**:
+  - Computes attention over input tokens to encode representations.
+2. **Decoder Self-Attention**:
+  - Computes attention over already generated outputs.
+3. **Cross-Attention**:
+  - Links the encoder's outputs (keys/values) with the decoder's queries.
+
+---
+
+## Advantages
+- Captures long-range dependencies effectively.
+- Allows parallel processing, unlike RNNs.
+- Flexible for a wide range of input-output relationships.
+
+---
+
+## Challenges
+- Computationally expensive for long sequences (quadratic complexity in input length).
+- Requires positional encoding to handle sequence order.
+
+---
+
+## Summary
+Attention mechanisms are a cornerstone of modern deep learning architectures. By enabling models to dynamically focus on relevant parts of input sequences, attention mechanisms have unlocked new capabilities in natural language processing, vision, and beyond.

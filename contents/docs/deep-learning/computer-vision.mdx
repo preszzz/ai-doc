@@ -1,0 +1,122 @@
+---
+title: Computer Vision
+---
+
+Computer Vision is a field of AI focused on enabling machines to interpret and process visual information, such as images and videos, in a manner similar to the human visual system. Leveraging deep learning, computer vision has achieved state-of-the-art performance across various tasks.
+
+---
+
+## Key Concepts
+
+### 1. Image Representation
+Images are typically represented as matrices of pixel values:
+- **Grayscale Images**:
+  - Single channel matrix with intensity values ranging from 0 (black) to 255 (white).
+- **Color Images**:
+  - 3-channel (RGB) matrices, where each channel represents the intensity of red, green, and blue.
+
+### 2. Feature Extraction
+Deep learning models automatically extract features from images to learn patterns. Early layers detect simple features like edges, while deeper layers capture complex patterns like shapes or objects.
+
+---
+
+## Core Tasks
+
+### 1. Image Classification
+- Assigns a single label to an entire image.
+- Example: Identifying whether an image contains a cat or a dog.
+- **Common Architectures**:
+  - AlexNet, VGG, ResNet, EfficientNet.
+
+### 2. Object Detection
+- Identifies and localizes multiple objects in an image by drawing bounding boxes and assigning labels.
+- Example: Detecting cars, pedestrians, and traffic lights in a street scene.
+- **Popular Models**:
+  - YOLO (You Only Look Once), Faster R-CNN, SSD (Single Shot MultiBox Detector).
+
+### 3. Image Segmentation
+- Divides an image into regions of interest by assigning each pixel to a specific category.
+  - **Semantic Segmentation**: Assigns categories to all pixels (e.g., road, sky, car).
+  - **Instance Segmentation**: Differentiates between multiple objects of the same class.
+- **Notable Models**:
+  - U-Net, DeepLab.
+
+### 4. Image Generation
+- Creates new images that resemble real-world data.
+- Techniques:
+  - GANs (Generative Adversarial Networks).
+  - VAEs (Variational Autoencoders).
+
+---
+
+## Techniques and Models
+
+### 1. Convolutional Neural Networks (CNNs)
+CNNs are the backbone of computer vision tasks. They efficiently capture spatial hierarchies in images through:
+- Convolutions.
+- Pooling.
+- Fully connected layers.
+
+### 2. Transfer Learning
+- Pre-trained models like ResNet or VGG are fine-tuned for specific vision tasks, reducing training time and improving performance.
+
+### 3. Vision Transformers (ViT)
+- Treat images as sequences of patches and apply transformer architectures.
+- Highly effective for large-scale vision tasks.
+
+### 4. Data Augmentation
+- Enhances the diversity of training data by applying transformations like:
+  - Flipping, rotation, scaling.
+  - Color adjustments, cropping.
+  - Adding noise.
+
+---
+
+## Applications
+
+### 1. Autonomous Vehicles
+- Object detection for recognizing pedestrians, vehicles, and traffic signs.
+- Lane detection using image segmentation.
+
+### 2. Medical Imaging
+- Cancer detection in MRI or CT scans.
+- Organ segmentation for surgical planning.
+
+### 3. Facial Recognition
+- Identifying individuals in images or videos.
+- Applications in security and authentication.
+
+### 4. Retail and E-commerce
+- Product recommendation using visual search.
+- Inventory management with object detection.
+
+### 5. Augmented Reality
+- Enhances real-world environments by overlaying virtual objects.
+- Used in gaming, training, and education.
+
+---
+
+## Challenges
+1. **Data Quality**:
+  - High-quality labeled data is essential for training effective models.
+2. **Real-time Processing**:
+  - Deploying models that can handle large-scale visual data in real time requires significant computational resources.
+3. **Generalization**:
+  - Ensuring the model performs well across diverse environments and datasets.
+
+---
+
+## Popular Datasets
+- **ImageNet**:
+  - Large-scale dataset used for image classification.
+- **COCO (Common Objects in Context)**:
+  - Widely used for object detection, segmentation, and captioning.
+- **Pascal VOC**:
+  - Benchmark dataset for object detection and segmentation.
+- **MNIST and Fashion-MNIST**:
+  - Simple datasets for digit and clothing classification.
+
+---
+
+## Summary
+Computer Vision is a cornerstone of modern AI, powering applications from autonomous vehicles to medical diagnostics. With advancements in architectures like CNNs, Vision Transformers, and techniques like transfer learning, the field continues to evolve, addressing complex visual recognition and generation challenges.

@@ -1,0 +1,72 @@
+---
+title: Feedforward Neural Networks (FNN)
+---
+
+Feedforward Neural Networks (FNN) are the simplest type of artificial neural network where information flows in one direction—from input to output—without any cycles or feedback loops.
+
+## Key Concepts
+
+### Architecture
+- **Input Layer**: Receives the input features.
+- **Hidden Layers**: Intermediate layers that learn representations of the input data.
+- **Output Layer**: Produces the final predictions.
+
+An FNN with one hidden layer is called a single-layer perceptron, while networks with multiple hidden layers are referred to as deep feedforward neural networks.
+
+### Neuron Computation
+Each neuron computes a weighted sum of its inputs, adds a bias, and applies an activation function:
+$$
+z = \sum_{i=1}^{n} w_i x_i + b
+$$
+$$
+y = f(z)
+$$
+Where:
+- $x_i$ are the inputs,
+- $w_i$ are the weights,
+- $b$ is the bias,
+- $f$ is the activation function.
+
+### Example
+For a simple network with two inputs $x_1, x_2$, weights $w_1, w_2$, and bias $b$:
+$$
+z = w_1 x_1 + w_2 x_2 + b
+$$
+
+## Forward Propagation
+Forward propagation refers to the process of computing the output of the network by passing inputs through each layer.
+
+1. Compute the weighted sum for each neuron:
+   $$
+   z^{(l)} = W^{(l)} a^{(l-1)} + b^{(l)}
+   $$
+   Where:
+   - $W^{(l)}$ is the weight matrix for layer $l$,
+   - $a^{(l-1)}$ are the activations from the previous layer,
+   - $b^{(l)}$ is the bias vector.
+
+2. Apply the activation function:
+   $$
+   a^{(l)} = f(z^{(l)})
+   $$
+
+3. Repeat for all layers until the output layer.
+
+## Limitations
+- **Linear Separability**: Without activation functions, FNNs can only represent linear decision boundaries.
+- **Overfitting**: Larger networks with too many parameters may overfit small datasets.
+
+## Applications
+- **Regression**: Predicting continuous outputs like house prices.
+- **Classification**: Categorizing data into classes, e.g., spam detection.
+
+## Advantages
+- Simplicity and interpretability for basic tasks.
+- Easy to implement and train for small datasets.
+
+## Challenges
+- Requires careful selection of hyperparameters (e.g., number of layers, neurons, learning rate).
+- Prone to vanishing gradients when deep networks are used without modern techniques like ReLU.
+
+## Summary
+Feedforward Neural Networks are foundational in deep learning. While simple in structure, they are powerful when combined with appropriate activation functions and optimization techniques. Their limitations have paved the way for more advanced architectures like Convolutional and Recurrent Neural Networks.

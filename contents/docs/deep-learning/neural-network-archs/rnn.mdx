@@ -1,0 +1,111 @@
+---
+title: Recurrent Neural Networks (RNN)
+---
+Recurrent Neural Networks (RNNs) are a class of neural networks designed to handle sequential data. Unlike feedforward networks, RNNs maintain a hidden state that captures information about previous inputs, making them suitable for tasks involving time-series or text.
+
+## Key Concepts
+
+### Architecture
+1. **Input Layer**:
+  - Accepts sequential data where each input corresponds to a time step.
+  - Example: For a sentence, each word is a time step.
+
+2. **Hidden Layer (Recurrent Connection)**:
+  - Maintains a hidden state $h_t$ that captures information from previous time steps.
+  - Recurrence equation:
+    $$
+    h_t = f(W_h h_{t-1} + W_x x_t + b_h)
+    $$
+    Where:
+    - $h_t$ is the hidden state at time $t$,
+    - $h_{t-1}$ is the hidden state from the previous time step,
+    - $x_t$ is the input at time $t$,
+    - $W_h, W_x$ are weight matrices,
+    - $b_h$ is the bias vector,
+    - $f$ is the activation function (e.g., $\tanh$ or ReLU).
+
+3. **Output Layer**:
+  - Computes the output at each time step or for the entire sequence.
+  - Output equation:
+    $$
+    y_t = f(W_y h_t + b_y)
+    $$
+    Where:
+    - $W_y$ is the weight matrix for the output,
+    - $b_y$ is the bias vector.
+
+---
+
+## Variants of RNN Architectures
+1. **One-to-One**:
+  - Standard neural networks (e.g., image classification).
+2. **One-to-Many**:
+  - Generates sequences from a single input (e.g., music generation).
+3. **Many-to-One**:
+  - Outputs a single value for a sequence (e.g., sentiment analysis).
+4. **Many-to-Many**:
+  - Outputs a sequence for a sequence input (e.g., machine translation).
+
+---
+
+## Challenges with Standard RNNs
+1. **Vanishing Gradient Problem**:
+  - Gradients diminish over time steps, making it difficult to learn long-term dependencies.
+2. **Exploding Gradient Problem**:
+  - Gradients grow exponentially, leading to unstable training.
+
+---
+
+## Advanced RNN Variants
+1. **Long Short-Term Memory (LSTM)**:
+  - Introduced by Hochreiter and Schmidhuber (1997).
+  - Uses gates to control the flow of information:
+    $$
+    \begin{aligned}
+    f_t &= \sigma(W_f x_t + U_f h_{t-1} + b_f) \quad \text{(Forget Gate)} \\
+    i_t &= \sigma(W_i x_t + U_i h_{t-1} + b_i) \quad \text{(Input Gate)} \\
+    o_t &= \sigma(W_o x_t + U_o h_{t-1} + b_o) \quad \text{(Output Gate)} \\
+    \tilde{c}_t &= \tanh(W_c x_t + U_c h_{t-1} + b_c) \\
+    c_t &= f_t \odot c_{t-1} + i_t \odot \tilde{c}_t \quad \text{(Cell State Update)} \\
+    h_t &= o_t \odot \tanh(c_t) \quad \text{(Hidden State Update)}
+    \end{aligned}
+    $$
+
+2. **Gated Recurrent Units (GRU)**:
+  - Simplified version of LSTMs with fewer parameters:
+    $$
+    \begin{aligned}
+    z_t &= \sigma(W_z x_t + U_z h_{t-1} + b_z) \quad \text{(Update Gate)} \\
+    r_t &= \sigma(W_r x_t + U_r h_{t-1} + b_r) \quad \text{(Reset Gate)} \\
+    h_t &= z_t \odot h_{t-1} + (1 - z_t) \odot \tanh(W_h x_t + U_h (r_t \odot h_{t-1}) + b_h)
+    \end{aligned}
+    $$
+
+---
+
+## Applications
+1. **Natural Language Processing (NLP)**:
+  - Sentiment analysis, machine translation, and text generation.
+2. **Time-Series Prediction**:
+  - Forecasting stock prices, weather, or sensor readings.
+3. **Speech Processing**:
+  - Speech-to-text and text-to-speech conversion.
+4. **Sequence Labeling**:
+  - Part-of-speech tagging, named entity recognition.
+
+---
+
+## Advantages
+- Captures sequential patterns and temporal dependencies.
+- Suitable for variable-length inputs.
+
+---
+
+## Challenges
+- Difficult to train on long sequences due to vanishing gradients.
+- Computationally intensive compared to feedforward networks.
+
+---
+
+## Summary
+Recurrent Neural Networks are powerful tools for sequential data. While standard RNNs struggle with long-term dependencies, advanced variants like LSTMs and GRUs effectively address these challenges, making them indispensable in tasks like language modeling and time-series analysis.

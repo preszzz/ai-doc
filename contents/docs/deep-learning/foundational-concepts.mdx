@@ -2,13 +2,6 @@
 title: Foundational Concepts in Deep Learning
 ---
 
-## Table of Contents
-1. [Introduction to Artificial Neural Networks](#introduction-to-artificial-neural-networks)
-2. [Activation Functions](#activation-functions)
-3. [Loss Functions and Optimization](#loss-functions-and-optimization)
-
----
-
 ## 1. Introduction to Artificial Neural Networks
 Artificial Neural Networks (ANNs) are the building blocks of deep learning. Inspired by the biological brain, ANNs consist of interconnected neurons that process information and learn patterns from data.
 
@@ -27,7 +20,6 @@ Given inputs $x_1$, $x_2$, $\ldots$, $x_n$ with weights $w_1$, $w_2$, $\ldots$, 
 $$
 z = \sum_{i=1}^{n} w_i x_i + b
 $$
-
 $$
 y = f(z)
 $$
@@ -40,33 +32,33 @@ Activation functions introduce non-linearity into the network, enabling it to le
 
 ### Common Activation Functions
 - **Sigmoid:**
- $$
+  $$
   f(x) = \frac{1}{1 + e^{-x}}
- $$
+  $$
   - Output range: (0, 1).
   - Pros: Smooth gradients.
   - Cons: Vanishing gradient problem.
 
 - **ReLU (Rectified Linear Unit):**
- $$
+  $$
   f(x) = \max(0, x)
- $$
+  $$
   - Output range: $[0, \infty)$.
   - Pros: Efficient and prevents vanishing gradients.
   - Cons: Can lead to "dead neurons."
 
 - **Tanh:**
- $$
+  $$
   f(x) = \tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}
- $$
+  $$
   - Output range: (-1, 1).
   - Pros: Centered at zero, smooth gradients.
   - Cons: Suffers from vanishing gradients for large inputs.
 
 - **Softmax:**
- $$
+  $$
   f_i(x) = \frac{e^{x_i}}{\sum_{j} e^{x_j}}
- $$
+  $$
   - Used for multi-class classification.
   - Converts logits into probabilities.
 
@@ -82,24 +74,24 @@ Loss functions measure the difference between the predicted output and the groun
 
 ### Common Loss Functions
 - **Mean Squared Error (MSE):**
- $$
+  $$
   \text{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
- $$
+  $$
   - Used for regression tasks.
   - Penalizes large errors.
 
 - **Cross-Entropy Loss:**
- $$
+  $$
   \mathcal{L} = -\frac{1}{n} \sum_{i=1}^{n} \left[ y_i \log(\hat{y}_i) + (1 - y_i) \log(1 - \hat{y}_i) \right]
- $$
+  $$
   - Commonly used for classification tasks.
 
 ### Optimization Algorithms
 - **Gradient Descent:**
   Iteratively adjusts weights based on the gradient of the loss function:
- $$
+  $$
   w = w - \alpha \nabla \mathcal{L}
- $$
+  $$
   Where $\alpha$ is the learning rate.
 
 - **Variants of Gradient Descent:**
@@ -111,5 +103,5 @@ Loss functions measure the difference between the predicted output and the groun
 
 ---
 
-### Summary
+## Summary
 The foundational concepts discussed here lay the groundwork for understanding and building deep learning models. Mastery of these concepts ensures a strong understanding of neural network design and optimization.

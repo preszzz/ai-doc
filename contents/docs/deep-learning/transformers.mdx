@@ -1,0 +1,147 @@
+---
+title: Transformers
+---
+
+Transformers are a deep learning architecture introduced in the seminal paper "Attention is All You Need" (Vaswani et al., 2017). They are built entirely on attention mechanisms, replacing recurrence and convolutions, making them highly efficient for sequence modeling tasks.
+
+---
+
+## Key Concepts
+
+### Motivation
+Traditional sequence models like RNNs and LSTMs struggle with:
+- Long-range dependencies due to vanishing gradients.
+- Sequential processing, leading to slow training.
+
+Transformers address these challenges by:
+1. Using self-attention to capture dependencies across sequences.
+2. Allowing parallel computation for faster training.
+
+---
+
+## Architecture Overview
+
+### Encoder-Decoder Framework
+The transformer consists of two main components:
+1. **Encoder**: Maps the input sequence to a series of continuous representations.
+2. **Decoder**: Uses these representations to generate the output sequence.
+
+### Components
+1. **Input Embeddings**:
+  - Words or tokens are converted into fixed-size vectors.
+  - Positional encoding is added to capture the order of the sequence:
+    $$
+    PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{\frac{2i}{d_{model}}}}\right)
+    $$
+    $$
+    PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d_{model}}}}\right)
+    $$
+    Where $pos$ is the position and $d_{model}$ is the embedding dimension.
+
+2. **Multi-Head Self-Attention**:
+  - Computes attention scores over the input tokens.
+  - Each attention head focuses on different aspects of the input.
+
+3. **Feedforward Neural Network**:
+  - A fully connected layer applied to each position:
+    $$
+    FFN(x) = \max(0, xW_1 + b_1)W_2 + b_2
+    $$
+    Where $W_1, W_2$ and $b_1, b_2$ are learnable parameters.
+
+4. **Residual Connections and Layer Normalization**:
+  - Skip connections improve gradient flow:
+    $$
+    \text{Output} = \text{LayerNorm}(x + \text{Sublayer}(x))
+    $$
+
+---
+
+## Self-Attention in Transformers
+
+### Scaled Dot-Product Attention
+Given query $Q$, key $K$, and value $V$ matrices:
+$$
+\text{Attention}(Q, K, V) = \text{Softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+$$
+Where:
+- $Q, K, V$ are projections of the input embeddings.
+- $d_k$ is the dimensionality of the key vectors, used for scaling.
+
+### Multi-Head Attention
+Combines multiple attention heads to capture diverse features:
+$$
+\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)W^O
+$$
+Where:
+- $\text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)$
+- $W_i^Q, W_i^K, W_i^V, W^O$ are learnable projection matrices.
+
+---
+
+## Decoder Attention
+1. **Masked Self-Attention**:
+  - Prevents the decoder from attending to future tokens in the sequence:
+    $$
+    \text{Mask}(i, j) = 
+    \begin{cases} 
+    0 & \text{if } i \geq j \\
+    -\infty & \text{if } i < j
+    \end{cases}
+    $$
+  - Ensures autoregressive generation.
+
+2. **Cross-Attention**:
+  - The decoder attends to the encoder's outputs to align input and output sequences.
+
+---
+
+## Applications
+1. **Natural Language Processing**:
+  - Machine translation (e.g., Google Translate).
+  - Text summarization.
+  - Question answering (e.g., BERT, GPT).
+
+2. **Vision Transformers (ViTs)**:
+  - Apply transformer principles to image patches.
+  - Achieve state-of-the-art results in classification and object detection.
+
+3. **Audio and Speech Processing**:
+  - Speech recognition and synthesis.
+  - Audio classification.
+
+---
+
+## Advantages
+- Captures long-range dependencies effectively.
+- Highly parallelizable for fast training.
+- Scalable to large datasets and models.
+
+---
+
+## Challenges
+- Quadratic computational complexity with sequence length.
+- Requires large datasets and compute resources for training.
+- Dependence on positional encoding for sequence information.
+
+---
+
+## Popular Transformer Models
+1. **BERT (Bidirectional Encoder Representations from Transformers)**:
+  - Encoder-only architecture.
+  - Trained with a masked language modeling objective.
+  - Ideal for tasks like classification and question answering.
+
+2. **GPT (Generative Pre-trained Transformer)**:
+  - Decoder-only architecture.
+  - Autoregressive generation, predicting the next token.
+  - Excels in text generation and completion.
+
+3. **Vision Transformer (ViT)**:
+  - Adapts transformer principles for image data.
+  - Processes images as sequences of patches.
+
+---
+
+## Summary
+Transformers represent a paradigm shift in deep learning, offering unparalleled capabilities in sequence modeling tasks. By leveraging self-attention and parallel computation, they have become the backbone of state-of-the-art models in NLP, vision, and beyond.
