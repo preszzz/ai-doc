@@ -1,0 +1,108 @@
+---
+title: Convolutional Neural Networks (CNN)
+---
+
+Convolutional Neural Networks (CNNs) are specialized neural networks designed for processing structured data like images. They leverage the spatial and hierarchical nature of data to efficiently learn patterns such as edges, shapes, and textures.
+
+## Key Concepts
+
+### Architecture
+1. **Convolutional Layer**:
+  - Extracts features using filters (kernels) that slide over the input.
+  - Each filter produces a feature map highlighting specific patterns.
+
+   Computation for a single filter:
+  $$
+  z_{ij} = \sum_{k=1}^{f} \sum_{l=1}^{f} w_{kl} x_{i+k, j+l} + b
+  $$
+   Where:
+   - $f$ is the filter size,
+   - $w_{kl}$ are the filter weights,
+   - $x_{i+k, j+l}$ is the input region under the filter,
+   - $b$ is the bias term.
+
+2. **Pooling Layer**:
+   - Reduces the spatial dimensions of feature maps, retaining important information.
+   - Common types: Max pooling and Average pooling.
+   - For max pooling:
+    $$
+    z_{ij} = \max \{x_{i:i+f, j:j+f}\}
+    $$
+
+3. **Fully Connected Layer**:
+   - Flattens the output of the convolutional and pooling layers.
+   - Connects all neurons for final predictions.
+
+4. **Activation Functions**:
+   - ReLU is commonly used to introduce non-linearity:
+    $$
+    f(x) = \max(0, x)
+    $$
+
+### Feature Maps
+Each convolutional layer produces feature maps that capture specific patterns (e.g., edges, corners). Deeper layers detect higher-level features like shapes and objects.
+
+---
+
+## Key Properties
+
+### Filters and Strides
+- **Filter (Kernel):** A small matrix used to extract features.
+- **Stride:** The step size for sliding the filter over the input.
+
+### Padding
+- Adding zeros around the input to maintain spatial dimensions after convolution.
+- Types:
+  - **Valid Padding:** No padding.
+  - **Same Padding:** Output size equals input size.
+
+### Parameter Sharing
+- Filters share weights across the input, reducing the number of parameters and improving efficiency.
+
+---
+
+## Advantages
+- Efficient for structured data like images.
+- Captures local spatial patterns.
+- Reduces the number of parameters compared to fully connected networks.
+
+---
+
+## Applications
+1. **Image Classification**:
+  - Assign a label to an entire image (e.g., cat vs. dog).
+2. **Object Detection**:
+  - Identify and localize objects in an image (e.g., bounding boxes for cars in a photo).
+3. **Image Segmentation**:
+  - Partition an image into distinct regions (e.g., separating foreground from background).
+
+---
+
+## Popular Architectures
+1. **AlexNet**:
+  - First CNN to win the ImageNet challenge (2012).
+  - Introduced ReLU, dropout, and GPUs for training.
+
+2. **VGGNet**:
+  - Simplified architecture with stacked $3 \times 3$ convolution layers.
+  - Known for its depth and parameter count (~138M).
+
+3. **ResNet**:
+  - Introduced residual connections to tackle vanishing gradients.
+  - Enabled training of very deep networks (e.g., 152 layers).
+
+4. **Inception (GoogLeNet)**:
+  - Used multiple filter sizes in a single layer (Inception module).
+  - Optimized computational efficiency with $1 \times 1$ convolutions.
+
+---
+
+## Challenges
+- Computationally expensive, especially for high-resolution inputs.
+- Requires large datasets to avoid overfitting.
+- Sensitive to hyperparameters like filter size, stride, and learning rate.
+
+---
+
+## Summary
+Convolutional Neural Networks are a cornerstone of deep learning for computer vision tasks. By leveraging convolutions, pooling, and parameter sharing, CNNs efficiently capture spatial hierarchies in data, making them ideal for image-related applications.

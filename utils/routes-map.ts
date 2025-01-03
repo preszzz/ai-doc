@@ -119,7 +119,7 @@ const ROUTES: EachRoute[] = [
             { title: "01 Foundational Concepts", href: "/foundational-concepts" },
             {
                 title: "02 Neural Network Archs",
-                href: "/neural-network-arch",
+                href: "/neural-network-archs",
                 items: [
                     { title: "FNN", href: "/fnn" },
                     { title: "CNN", href: "/cnn" },

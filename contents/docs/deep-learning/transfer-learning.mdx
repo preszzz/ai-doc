@@ -1,0 +1,125 @@
+---
+title: Transfer Learning
+---
+
+Transfer learning leverages pre-trained models on one task and adapts them to a different but related task. This approach is particularly useful when the target task has limited data, allowing models to benefit from knowledge gained in the source task.
+
+---
+
+## Key Concepts
+
+### What is Transfer Learning?
+- **Pre-trained Model**:
+  - A model trained on a large dataset (source task).
+  - Examples: ImageNet-trained models, BERT for NLP.
+- **Fine-tuning**:
+  - Adapting the pre-trained model to the target task by continuing training on the target dataset.
+
+### Why Transfer Learning?
+- Saves computational resources and time.
+- Improves performance on tasks with limited labeled data.
+- Enables learning generalized representations.
+
+---
+
+## Types of Transfer Learning
+
+1. **Feature Extraction**:
+  - Use the pre-trained model as a feature extractor by freezing its layers.
+  - Only the final layer is retrained for the target task.
+
+  Example:
+  - Extract image features using a pre-trained CNN like ResNet.
+  - Train a classifier on top of these features.
+
+2. **Fine-tuning**:
+  - Retrain some or all layers of the pre-trained model on the target task.
+  - Useful when the target task is closely related to the source task.
+
+3. **Domain Adaptation**:
+  - Transfer knowledge between domains with different data distributions.
+  - Example: Adapting a sentiment analysis model trained on product reviews to movie reviews.
+
+---
+
+## Steps in Transfer Learning
+
+### 1. Select a Pre-trained Model
+- Choose a model pre-trained on a dataset similar to your task.
+- Common pre-trained models:
+  - **Computer Vision**: ResNet, VGG, EfficientNet.
+  - **Natural Language Processing**: BERT, GPT, RoBERTa.
+
+### 2. Modify the Architecture
+- Replace the output layer to match the target task.
+  - For classification: Adjust the number of output nodes to the target classes.
+  - For regression: Use a single output node with a linear activation function.
+
+### 3. Train the Model
+- **Feature Extraction**:
+  - Freeze the pre-trained layers.
+  - Train only the newly added layers.
+- **Fine-tuning**:
+  - Unfreeze some pre-trained layers.
+  - Train the entire model with a lower learning rate.
+
+---
+
+## Transfer Learning in Practice
+
+### 1. Computer Vision
+- **Pre-trained Models**: ImageNet-trained ResNet, VGG.
+- **Applications**:
+  - Object detection.
+  - Image segmentation.
+  - Medical image analysis.
+
+### 2. Natural Language Processing
+- **Pre-trained Models**: BERT, GPT, T5.
+- **Applications**:
+  - Text classification (e.g., sentiment analysis).
+  - Question answering.
+  - Text summarization.
+
+### 3. Audio Processing
+- **Pre-trained Models**: Wave2Vec, OpenL3.
+- **Applications**:
+  - Speech-to-text.
+  - Audio classification.
+
+---
+
+## Advantages
+- Requires less training data for the target task.
+- Reduces training time and computational cost.
+- Leverages rich, generalized features learned on large datasets.
+
+---
+
+## Challenges
+- **Domain Mismatch**:
+  - Differences between source and target domains can reduce transferability.
+- **Catastrophic Forgetting**:
+  - Fine-tuning can overwrite useful knowledge from pre-trained weights.
+- **Hyperparameter Sensitivity**:
+  - Requires careful tuning of learning rates and layer freezing/unfreezing.
+
+---
+
+## Example: Fine-tuning a Pre-trained CNN
+1. Load a pre-trained model (e.g., ResNet50).
+2. Replace the output layer for the target classification task:
+   $$
+   \text{New Output Layer: } \text{Dense}(n\_classes, \text{activation}='softmax')
+   $$
+3. Freeze all layers except the output layer:
+  ```python
+  for layer in model.layers[:-1]:
+    layer.trainable = False
+  ```
+4. Train on the target dataset with a lower learning rate.
+
+---
+
+## Summary
+Transfer learning is a powerful technique for leveraging existing models to solve new tasks efficiently. By utilizing pre-trained models and adapting them to specific tasks, it enables high performance even with limited data and resources.

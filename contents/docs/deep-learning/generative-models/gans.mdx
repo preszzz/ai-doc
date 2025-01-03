@@ -1,0 +1,126 @@
+---
+title: Generative Adversarial Networks (GANs)
+---
+
+Generative Adversarial Networks (GANs) are a class of generative models that learn to create data similar to a given dataset. Introduced by Ian Goodfellow in 2014, GANs consist of two neural networks—a generator and a discriminator—that compete against each other in a zero-sum game.
+
+---
+
+## Key Concepts
+
+### Components of GANs
+1. **Generator**:
+  - Creates synthetic data (e.g., images) from random noise.
+  - Learns to generate data that mimics the true data distribution.
+  - Output is passed through a transformation to match the target data format.
+    $$
+    \hat{x} = G(z)
+    $$
+    Where:
+    - $z$ is random noise sampled from a distribution (e.g., Gaussian).
+    - $G$ is the generator network.
+
+2. **Discriminator**:
+  - Distinguishes between real and synthetic (fake) data.
+  - Outputs a probability score indicating whether the input is real.
+    $$
+    D(x) = P(\text{real} \mid x)
+    $$
+    Where:
+    - $x$ is the input data.
+
+---
+
+## Training GANs
+
+GANs are trained using a minimax game, where:
+- The generator tries to maximize the discriminator's error (make the discriminator think fake data is real).
+- The discriminator tries to minimize its error (correctly distinguish real from fake).
+
+### Objective Function
+$$
+\min_G \max_D V(D, G) = \mathbb{E}_{x \sim p_\text{data}(x)}[\log D(x)] + \mathbb{E}_{z \sim p_z(z)}[\log(1 - D(G(z)))]
+$$
+Where:
+- $p_\text{data}(x)$ is the true data distribution.
+- $p_z(z)$ is the distribution of random noise.
+
+---
+
+### Training Steps
+1. **Discriminator Training**:
+  - Update $D$ to maximize the likelihood of correctly classifying real and fake data.
+  - Loss function:
+    $$
+    \mathcal{L}_D = -\left(\mathbb{E}_{x \sim p_\text{data}(x)}[\log D(x)] + \mathbb{E}_{z \sim p_z(z)}[\log(1 - D(G(z)))]\right)
+    $$
+
+2. **Generator Training**:
+  - Update $G$ to minimize the discriminator's ability to distinguish real from fake data.
+  - Loss function:
+    $$
+    \mathcal{L}_G = -\mathbb{E}_{z \sim p_z(z)}[\log D(G(z))]
+    $$
+
+3. Alternate updates between $D$ and $G$.
+
+---
+
+## Challenges
+1. **Mode Collapse**:
+  - The generator produces limited diversity in outputs, focusing on a few modes of the data distribution.
+  - Solution: Techniques like minibatch discrimination or Wasserstein GAN.
+
+2. **Training Instability**:
+  - GANs often fail to converge due to the adversarial nature of training.
+  - Solution: Use alternative loss functions (e.g., Wasserstein loss) or techniques like spectral normalization.
+
+3. **Vanishing Gradients**:
+  - Discriminator becomes too strong, leading to negligible gradients for the generator.
+
+---
+
+## Variants of GANs
+1. **DCGAN (Deep Convolutional GAN)**:
+  - Uses convolutional layers in the generator and discriminator.
+  - Suitable for image data.
+
+2. **WGAN (Wasserstein GAN)**:
+  - Introduces the Wasserstein distance for a more stable training process.
+
+3. **CycleGAN**:
+  - Translates data between two domains without paired examples (e.g., converting photos to paintings).
+
+4. **StyleGAN**:
+  - Generates highly detailed and realistic images.
+  - Introduces style mixing and control over image attributes.
+
+---
+
+## Applications
+1. **Image Synthesis**:
+  - Generate realistic images (e.g., human faces, landscapes).
+2. **Data Augmentation**:
+  - Create synthetic data to improve model performance.
+3. **Super-Resolution**:
+  - Enhance image resolution using GAN-based techniques.
+4. **Domain Adaptation**:
+  - Transform data from one domain to another (e.g., day-to-night image conversion).
+
+---
+
+## Advantages
+- Highly flexible and capable of generating high-quality outputs.
+- No need for paired input-output data during training.
+
+---
+
+## Challenges
+- Computationally expensive.
+- Sensitive to hyperparameter choices.
+- Difficult to evaluate output quality quantitatively.
+
+---
+
+## Summary
+Generative Adversarial Networks are a groundbreaking approach to generative modeling, capable of producing highly realistic synthetic data. Despite their challenges, advancements like DCGANs and WGANs have made GANs a cornerstone of modern AI research and applications.
