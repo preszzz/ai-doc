@@ -1,0 +1,220 @@
+---
+title: Word Embeddings
+---
+
+Word embeddings are dense vector representations of words in a continuous vector space, where semantically similar words are mapped to nearby points. Unlike sparse representations like BoW or TF-IDF, embeddings capture semantic relationships between words.
+
+## Core Concepts
+
+### Vector Space Model
+- Words are represented as dense vectors
+- Similar words have similar vectors
+- Vector arithmetic captures semantic relationships
+  ```
+  king - man + woman ≈ queen
+  ```
+
+## Types of Embeddings
+
+### 1. Word2Vec
+Two main architectures:
+
+#### CBOW (Continuous Bag of Words)
+Predicts a word given its context:
+```python
+from gensim.models import Word2Vec
+
+def train_cbow(sentences):
+    model = Word2Vec(sentences,
+                    vector_size=100,
+                    window=5,
+                    min_count=1,
+                    sg=0)  # CBOW architecture
+    return model
+```
+
+#### Skip-gram
+Predicts context words given a target word:
+```python
+def train_skipgram(sentences):
+    model = Word2Vec(sentences,
+                    vector_size=100,
+                    window=5,
+                    min_count=1,
+                    sg=1)  # Skip-gram architecture
+    return model
+```
+
+### 2. GloVe (Global Vectors)
+Based on global word-word co-occurrence statistics:
+```python
+from gensim.models import KeyedVectors
+
+def load_glove_vectors(path):
+    return KeyedVectors.load_word2vec_format(path)
+```
+
+### 3. FastText
+Includes subword information:
+```python
+from gensim.models import FastText
+
+def train_fasttext(sentences):
+    model = FastText(sentences,
+                    vector_size=100,
+                    window=5,
+                    min_count=1)
+    return model
+```
+
+## Implementation
+
+### Basic Usage
+```python
+import numpy as np
+from gensim.models import Word2Vec
+
+class WordEmbedder:
+    def __init__(self, vector_size=100, window=5):
+        self.vector_size = vector_size
+        self.window = window
+        self.model = None
+    
+    def train(self, sentences):
+        self.model = Word2Vec(sentences,
+                            vector_size=self.vector_size,
+                            window=self.window,
+                            min_count=1)
+        
+    def get_vector(self, word):
+        return self.model.wv[word]
+    
+    def most_similar(self, word, n=10):
+        return self.model.wv.most_similar(word, topn=n)
+```
+
+## Advanced Features
+
+### 1. Document Embeddings
+Combining word vectors to represent documents:
+```python
+def document_embedding(doc, word_vectors):
+    vectors = [word_vectors[word] 
+              for word in doc 
+              if word in word_vectors]
+    return np.mean(vectors, axis=0)
+```
+
+### 2. Custom Training
+```python
+def custom_embedding_training(texts, vector_size=100):
+    # Preprocess texts
+    sentences = [text.split() for text in texts]
+    
+    # Train model
+    model = Word2Vec(sentences,
+                    vector_size=vector_size,
+                    window=5,
+                    min_count=1,
+                    workers=4)
+    
+    return model
+```
+
+## Applications
+
+1. **Text Classification**:
+   - Document categorization
+   - Sentiment analysis
+   - Topic modeling
+
+2. **Information Retrieval**:
+   - Semantic search
+   - Document similarity
+   - Question answering
+
+3. **Language Tasks**:
+   - Machine translation
+   - Text summarization
+   - Named entity recognition
+
+## Best Practices
+
+### 1. Training Data
+- Use large corpus
+- Clean and preprocess text
+- Consider domain-specific data
+
+### 2. Model Parameters
+- Choose appropriate vector size
+- Adjust window size
+- Set minimum frequency
+
+### 3. Evaluation
+- Use intrinsic evaluation (analogies)
+- Perform task-specific evaluation
+- Compare with baselines
+
+## Implementation Example
+
+```python
+class TextEmbedder:
+    def __init__(self, pretrained_path=None):
+        self.model = None
+        if pretrained_path:
+            self.load_pretrained(pretrained_path)
+    
+    def train(self, sentences, vector_size=100):
+        self.model = Word2Vec(sentences,
+                            vector_size=vector_size,
+                            window=5,
+                            min_count=1,
+                            workers=4)
+    
+    def load_pretrained(self, path):
+        self.model = KeyedVectors.load_word2vec_format(path)
+    
+    def get_document_embedding(self, document):
+        words = document.split()
+        vectors = [self.model.wv[word] 
+                  for word in words 
+                  if word in self.model.wv]
+        return np.mean(vectors, axis=0)
+    
+    def find_similar_words(self, word, n=10):
+        return self.model.wv.most_similar(word, topn=n)
+    
+    def analogy(self, word1, word2, word3):
+        return self.model.wv.most_similar(
+            positive=[word2, word3],
+            negative=[word1]
+        )
+```
+
+## Advantages
+
+1. **Semantic Understanding**:
+   - Captures word relationships
+   - Handles synonyms and analogies
+   - Preserves semantic similarity
+
+2. **Dimensionality**:
+   - Dense representation
+   - Lower dimensional space
+   - Efficient computation
+
+## Limitations
+
+1. **Training Requirements**:
+   - Large corpus needed
+   - Computational resources
+   - Domain adaptation
+
+2. **Word Ambiguity**:
+   - Single vector per word
+   - No context consideration
+   - Polysemy handling
+
+## Summary
+
+Word embeddings represent a significant advancement in text representation, offering dense, meaningful vectors that capture semantic relationships between words. Their ability to model word similarities and relationships makes them valuable for various NLP tasks, though they have limitations in handling context and ambiguity. 

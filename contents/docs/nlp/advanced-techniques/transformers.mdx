@@ -1,0 +1,227 @@
+---
+title: Transformers in NLP
+---
+
+Transformers are state-of-the-art neural network architectures that have revolutionized NLP through their ability to process sequences in parallel and capture long-range dependencies using self-attention mechanisms.
+
+## Core Architecture
+
+### Components
+
+1. **Encoder**:
+   - Processes input sequence
+   - Self-attention layers
+   - Feed-forward networks
+
+2. **Decoder**:
+   - Generates output sequence
+   - Masked self-attention
+   - Cross-attention with encoder
+
+## Implementation
+
+### 1. Basic Transformer
+```python
+import torch
+import torch.nn as nn
+
+class TransformerModel(nn.Module):
+    def __init__(self, vocab_size, d_model, nhead, num_layers):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, d_model)
+        self.transformer = nn.Transformer(
+            d_model=d_model,
+            nhead=nhead,
+            num_encoder_layers=num_layers,
+            num_decoder_layers=num_layers
+        )
+        self.fc_out = nn.Linear(d_model, vocab_size)
+        
+    def forward(self, src, tgt):
+        src_embed = self.embedding(src)
+        tgt_embed = self.embedding(tgt)
+        
+        output = self.transformer(src_embed, tgt_embed)
+        return self.fc_out(output)
+```
+
+### 2. Self-Attention Mechanism
+```python
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model, num_heads):
+        super().__init__()
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.head_dim = d_model // num_heads
+        
+        self.q_linear = nn.Linear(d_model, d_model)
+        self.k_linear = nn.Linear(d_model, d_model)
+        self.v_linear = nn.Linear(d_model, d_model)
+        self.out = nn.Linear(d_model, d_model)
+        
+    def forward(self, query, key, value, mask=None):
+        batch_size = query.shape[0]
+        
+        Q = self.q_linear(query)
+        K = self.k_linear(key)
+        V = self.v_linear(value)
+        
+        # Split into heads
+        Q = Q.reshape(batch_size, -1, self.num_heads, self.head_dim)
+        K = K.reshape(batch_size, -1, self.num_heads, self.head_dim)
+        V = V.reshape(batch_size, -1, self.num_heads, self.head_dim)
+        
+        # Scaled dot-product attention
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, float('-inf'))
+            
+        attention = torch.softmax(scores, dim=-1)
+        x = torch.matmul(attention, V)
+        
+        x = x.reshape(batch_size, -1, self.d_model)
+        return self.out(x)
+```
+
+## Advanced Features
+
+### 1. Position Encoding
+```python
+def positional_encoding(seq_len, d_model):
+    position = torch.arange(seq_len).unsqueeze(1)
+    div_term = torch.exp(torch.arange(0, d_model, 2) * 
+                        -(math.log(10000.0) / d_model))
+    
+    pos_encoding = torch.zeros(seq_len, d_model)
+    pos_encoding[:, 0::2] = torch.sin(position * div_term)
+    pos_encoding[:, 1::2] = torch.cos(position * div_term)
+    
+    return pos_encoding
+```
+
+### 2. Layer Normalization
+```python
+class TransformerBlock(nn.Module):
+    def __init__(self, d_model, num_heads, dropout=0.1):
+        super().__init__()
+        self.attention = MultiHeadAttention(d_model, num_heads)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.feed_forward = nn.Sequential(
+            nn.Linear(d_model, 4 * d_model),
+            nn.ReLU(),
+            nn.Linear(4 * d_model, d_model)
+        )
+        self.dropout = nn.Dropout(dropout)
+        
+    def forward(self, x, mask=None):
+        attended = self.attention(x, x, x, mask)
+        x = self.norm1(x + self.dropout(attended))
+        
+        forwarded = self.feed_forward(x)
+        return self.norm2(x + self.dropout(forwarded))
+```
+
+## Best Practices
+
+### 1. Model Selection
+- Choose appropriate size
+- Consider computational resources
+- Balance performance and efficiency
+
+### 2. Training
+- Use learning rate warmup
+- Implement gradient clipping
+- Apply dropout strategically
+
+### 3. Optimization
+- Memory management
+- Batch size selection
+- Hardware utilization
+
+## Implementation Example
+
+```python
+class ModernTransformer(nn.Module):
+    def __init__(self,
+                 vocab_size,
+                 d_model=512,
+                 num_heads=8,
+                 num_layers=6,
+                 dropout=0.1):
+        super().__init__()
+        
+        self.embedding = nn.Embedding(vocab_size, d_model)
+        self.pos_encoding = positional_encoding(5000, d_model)
+        
+        self.encoder_layers = nn.ModuleList([
+            TransformerBlock(d_model, num_heads, dropout)
+            for _ in range(num_layers)
+        ])
+        
+        self.decoder_layers = nn.ModuleList([
+            TransformerBlock(d_model, num_heads, dropout)
+            for _ in range(num_layers)
+        ])
+        
+        self.fc_out = nn.Linear(d_model, vocab_size)
+        self.dropout = nn.Dropout(dropout)
+        
+    def forward(self, src, tgt, src_mask=None, tgt_mask=None):
+        # Embeddings + positional encoding
+        src = self.dropout(self.embedding(src) + 
+                         self.pos_encoding[:src.shape[1]])
+        tgt = self.dropout(self.embedding(tgt) + 
+                         self.pos_encoding[:tgt.shape[1]])
+        
+        # Encoder
+        enc_output = src
+        for layer in self.encoder_layers:
+            enc_output = layer(enc_output, src_mask)
+        
+        # Decoder
+        dec_output = tgt
+        for layer in self.decoder_layers:
+            dec_output = layer(dec_output, tgt_mask)
+        
+        return self.fc_out(dec_output)
+```
+
+## Applications
+
+1. **Language Tasks**:
+   - Machine translation
+   - Text generation
+   - Summarization
+
+2. **Understanding Tasks**:
+   - Question answering
+   - Text classification
+   - Named entity recognition
+
+3. **Multimodal Tasks**:
+   - Image captioning
+   - Visual question answering
+   - Cross-modal retrieval
+
+## Challenges
+
+1. **Computational Resources**:
+   - Memory requirements
+   - Training time
+   - Inference speed
+
+2. **Model Complexity**:
+   - Parameter count
+   - Architecture design
+   - Optimization difficulty
+
+3. **Scalability**:
+   - Sequence length limits
+   - Batch size constraints
+   - Resource scaling
+
+## Summary
+
+Transformers have become the foundation of modern NLP, offering superior performance through their attention mechanisms and parallel processing capabilities. While they present challenges in terms of computational resources and complexity, their versatility and effectiveness make them indispensable for advanced NLP tasks. 

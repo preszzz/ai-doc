@@ -1,0 +1,255 @@
+---
+title: 'Sentiment Analysis'
+description: 'Learn about sentiment analysis techniques and their applications in NLP'
+icon: 'face-smile'
+draft: false
+---
+
+# Sentiment Analysis
+
+Sentiment analysis is the process of determining the emotional tone behind text data. This guide covers various approaches to sentiment analysis and their practical applications.
+
+## Introduction
+
+Sentiment analysis helps organizations understand customer opinions, monitor brand reputation, and analyze user feedback at scale.
+
+## Basic Approaches
+
+### 1. Rule-based Methods
+```python
+def basic_sentiment_analyzer(text):
+    positive_words = {'good', 'great', 'excellent', 'happy', 'positive'}
+    negative_words = {'bad', 'poor', 'terrible', 'unhappy', 'negative'}
+    
+    words = text.lower().split()
+    positive_count = sum(1 for word in words if word in positive_words)
+    negative_count = sum(1 for word in words if word in negative_words)
+    
+    if positive_count > negative_count:
+        return 'positive'
+    elif negative_count > positive_count:
+        return 'negative'
+    return 'neutral'
+```
+
+### 2. Machine Learning Approaches
+```python
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+
+def train_sentiment_classifier(texts, labels):
+    vectorizer = TfidfVectorizer(max_features=1000)
+    X = vectorizer.fit_transform(texts)
+    
+    classifier = LogisticRegression()
+    classifier.fit(X, labels)
+    
+    return vectorizer, classifier
+```
+
+## Advanced Techniques
+
+### 1. Deep Learning Models
+```python
+from transformers import pipeline
+
+# Using pre-trained transformer model
+sentiment_analyzer = pipeline("sentiment-analysis")
+
+def analyze_sentiment(text):
+    result = sentiment_analyzer(text)[0]
+    return {
+        'label': result['label'],
+        'score': result['score']
+    }
+```
+
+### 2. Aspect-based Sentiment Analysis
+```python
+def aspect_based_sentiment(text, aspects):
+    sentiments = {}
+    doc = nlp(text)
+    
+    for aspect in aspects:
+        relevant_sentences = [sent.text for sent in doc.sents 
+                            if aspect in sent.text.lower()]
+        if relevant_sentences:
+            sentiment = analyze_sentiment(" ".join(relevant_sentences))
+            sentiments[aspect] = sentiment
+            
+    return sentiments
+```
+
+## Feature Engineering
+
+### 1. Text Preprocessing
+```python
+import re
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+def preprocess_text(text):
+    # Convert to lowercase
+    text = text.lower()
+    
+    # Remove special characters
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    
+    # Tokenization
+    tokens = word_tokenize(text)
+    
+    # Remove stopwords
+    stop_words = set(stopwords.words('english'))
+    tokens = [token for token in tokens if token not in stop_words]
+    
+    # Lemmatization
+    lemmatizer = WordNetLemmatizer()
+    tokens = [lemmatizer.lemmatize(token) for token in tokens]
+    
+    return ' '.join(tokens)
+```
+
+### 2. Advanced Features
+```python
+from textblob import TextBlob
+
+def extract_features(text):
+    blob = TextBlob(text)
+    return {
+        'polarity': blob.sentiment.polarity,
+        'subjectivity': blob.sentiment.subjectivity,
+        'word_count': len(blob.words),
+        'sentence_count': len(blob.sentences)
+    }
+```
+
+## Model Evaluation
+
+### 1. Performance Metrics
+```python
+from sklearn.metrics import classification_report, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+def evaluate_model(y_true, y_pred):
+    # Classification report
+    print(classification_report(y_true, y_pred))
+    
+    # Confusion matrix visualization
+    cm = confusion_matrix(y_true, y_pred)
+    sns.heatmap(cm, annot=True, fmt='d')
+    plt.show()
+```
+
+### 2. Cross-validation
+```python
+from sklearn.model_selection import cross_val_score
+
+def cross_validate_model(model, X, y, cv=5):
+    scores = cross_val_score(model, X, y, cv=cv)
+    print(f"Cross-validation scores: {scores}")
+    print(f"Mean CV score: {scores.mean():.3f} (+/- {scores.std() * 2:.3f})")
+```
+
+## Applications
+
+### 1. Social Media Monitoring
+```python
+def analyze_social_media_sentiment(posts):
+    results = []
+    for post in posts:
+        sentiment = analyze_sentiment(post['text'])
+        results.append({
+            'post_id': post['id'],
+            'sentiment': sentiment['label'],
+            'confidence': sentiment['score'],
+            'timestamp': post['timestamp']
+        })
+    return results
+```
+
+### 2. Customer Feedback Analysis
+```python
+def analyze_customer_feedback(reviews):
+    analysis = {
+        'positive': 0,
+        'negative': 0,
+        'neutral': 0,
+        'aspects': defaultdict(list)
+    }
+    
+    for review in reviews:
+        sentiment = analyze_sentiment(review['text'])
+        analysis[sentiment['label']] += 1
+        
+        # Aspect-based analysis
+        aspects = extract_aspects(review['text'])
+        for aspect, sentiment in aspects.items():
+            analysis['aspects'][aspect].append(sentiment)
+    
+    return analysis
+```
+
+## Best Practices
+
+1. **Data Preparation**
+   - Balance dataset
+   - Handle class imbalance
+   - Clean and normalize text
+
+2. **Model Selection**
+   - Consider domain specificity
+   - Evaluate computational resources
+   - Balance accuracy and speed
+
+3. **Deployment Considerations**
+   - Model versioning
+   - Performance monitoring
+   - Regular updates
+
+## Advanced Applications
+
+### 1. Multi-language Support
+```python
+from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer
+
+def create_multilingual_analyzer():
+    model_name = "nlptown/bert-base-multilingual-uncased-sentiment"
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    return pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
+```
+
+### 2. Real-time Analysis
+```python
+class SentimentStream:
+    def __init__(self):
+        self.analyzer = pipeline("sentiment-analysis")
+        self.buffer = []
+        
+    def process_stream(self, text):
+        sentiment = self.analyzer(text)[0]
+        self.buffer.append({
+            'text': text,
+            'sentiment': sentiment['label'],
+            'timestamp': datetime.now()
+        })
+```
+
+## Future Directions
+
+1. **Emotion Detection**
+   - Fine-grained emotion classification
+   - Multimodal sentiment analysis
+   - Context-aware analysis
+
+2. **Improved Accuracy**
+   - Better handling of sarcasm
+   - Understanding context
+   - Cultural nuances
+
+## Conclusion
+
+Sentiment analysis is a powerful tool for understanding public opinion and customer feedback. Continuous advancement in NLP techniques keeps improving its accuracy and applicability across various domains. 

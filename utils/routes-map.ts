@@ -145,54 +145,68 @@ const ROUTES: EachRoute[] = [
         href: "/nlp",
         noLink: true,
         items: [
-            {
-                title: "Sentiment Analysis",
-                href: "/components",
-                items: [
-                    { title: "Stepper", href: "/stepper" },
-                    { title: "Tabs", href: "/tabs" },
-                    { title: "Note", href: "/note" },
-                    { title: "Code Block", href: "/code-block" },
-                    { title: "Image & Link", href: "/image-link" },
-                    { title: "Custom", href: "/custom" },
-                ],
-            },
+            { title: "Introduction", href: "/introduction" },
             {
                 title: "Text Preprocessing",
-                href: "/cnn",
+                href: "/text-preprocessing",
                 items: [
-                    { title: "Stepper", href: "/stepper" },
-                    { title: "Tabs", href: "/tabs" },
-                    { title: "Note", href: "/note" },
-                    { title: "Code Block", href: "/code-block" },
-                    { title: "Image & Link", href: "/image-link" },
-                    { title: "Custom", href: "/custom" },
+                    { title: "Tokenization", href: "/tokenization" },
+                    { title: "Normalization", href: "/normalization" },
+                    { title: "Stop Words Removal", href: "/stop-words-removal" },
+                    { title: "N-grams and Patterns", href: "/ngrams-and-patterns" },
+                    { title: "Spell Checking", href: "/spell-checking" }
                 ],
             },
             {
-                title: "Semantic Search",
-                href: "/rnn",
+                title: "Text Representation",
+                href: "/text-representation",
                 items: [
-                    { title: "Stepper", href: "/stepper" },
-                    { title: "Tabs", href: "/tabs" },
-                    { title: "Note", href: "/note" },
-                    { title: "Code Block", href: "/code-block" },
-                    { title: "Image & Link", href: "/image-link" },
-                    { title: "Custom", href: "/custom" },
+                    { title: "Bag of Words", href: "/bow" },
+                    { title: "TF-IDF", href: "/tfidf" },
+                    { title: "Embeddings", href: "/embeddings" },
+                    { title: "Contextual Embeddings", href: "/contextual-embeddings" }
                 ],
             },
             {
-                title: "Large Language Model",
-                href: "/llm",
+                title: "Core Tasks",
+                href: "/core-tasks",
                 items: [
-                    { title: "Stepper", href: "/stepper" },
-                    { title: "Tabs", href: "/tabs" },
-                    { title: "Note", href: "/note" },
-                    { title: "Code Block", href: "/code-block" },
-                    { title: "Image & Link", href: "/image-link" },
-                    { title: "Custom", href: "/custom" },
+                    { title: "Text Classification", href: "/text-classification" },
+                    { title: "Named Entity Recognition", href: "/ner" },
+                    { title: "Machine Translation", href: "/machine-translation" },
+                    { title: "Text Summarization", href: "/text-summarization" },
+                    { title: "Information Retrieval", href: "/information-retrieval" }
                 ],
             },
+            {
+                title: "Advanced Techniques",
+                href: "/advanced-techniques",
+                items: [
+                    { title: "Transformers", href: "/transformers" },
+                    { title: "Fine-tuning", href: "/fine-tuning" },
+                    { title: "RAG", href: "/rag" }
+                ],
+            },
+            {
+                title: "Unsupervised NLP",
+                href: "/unsupervised-nlp",
+                items: [
+                    { title: "Topic Modeling", href: "/topic-modeling" },
+                    { title: "Clustering", href: "/clustering" },
+                    { title: "Dimensionality Reduction", href: "/dimensionality-reduction" }
+                ],
+            },
+            { title: "Evaluation Metrics", href: "/evaluation-metrics" },
+            {
+                title: "Applications",
+                href: "/applications",
+                items: [
+                    { title: "Chatbots", href: "/chatbots" },
+                    { title: "Sentiment Analysis", href: "/sentiment-analysis" },
+                    { title: "Recommendation Systems", href: "/recommendation-systems" },
+                    { title: "Domain-specific NLP", href: "/domain-specific-nlp" }
+                ],
+            }
         ],
     },
     {

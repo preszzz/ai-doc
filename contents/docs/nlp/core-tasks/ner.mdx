@@ -1,0 +1,196 @@
+---
+title: Named Entity Recognition (NER)
+---
+
+Named Entity Recognition (NER) is the task of identifying and classifying named entities (such as person names, organizations, locations, etc.) in text. It's a crucial component in many NLP applications, from information extraction to question answering.
+
+## Core Concepts
+
+### Entity Types
+Common entity categories include:
+- Person (PER)
+- Organization (ORG)
+- Location (LOC)
+- Date/Time
+- Money
+- Product
+
+## Implementation Approaches
+
+### 1. Rule-Based NER
+```python
+import spacy
+
+def rule_based_ner(text):
+    nlp = spacy.load('en_core_web_sm')
+    doc = nlp(text)
+    entities = [(ent.text, ent.label_) for ent in doc.ents]
+    return entities
+```
+
+### 2. Statistical Models
+```python
+from sklearn_crfsuite import CRF
+
+class CRFEntityRecognizer:
+    def __init__(self):
+        self.model = CRF(
+            algorithm='lbfgs',
+            c1=0.1,
+            c2=0.1,
+            max_iterations=100
+        )
+    
+    def extract_features(self, sentence):
+        features = []
+        for i, word in enumerate(sentence):
+            word_features = {
+                'word': word,
+                'is_first': i == 0,
+                'is_last': i == len(sentence) - 1,
+                'is_capitalized': word[0].upper() == word[0],
+                'is_all_caps': word.upper() == word,
+                'prefix-1': word[0],
+                'prefix-2': word[:2],
+                'suffix-1': word[-1],
+                'suffix-2': word[-2:],
+            }
+            features.append(word_features)
+        return features
+```
+
+### 3. Deep Learning
+```python
+import torch.nn as nn
+
+class BiLSTM_CRF(nn.Module):
+    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.lstm = nn.LSTM(embedding_dim, 
+                           hidden_dim // 2,
+                           num_layers=1, 
+                           bidirectional=True)
+        self.hidden2tag = nn.Linear(hidden_dim, len(tag_to_ix))
+        self.crf = CRF(len(tag_to_ix))
+        
+    def forward(self, sentence):
+        embeds = self.embedding(sentence)
+        lstm_out, _ = self.lstm(embeds)
+        tag_space = self.hidden2tag(lstm_out)
+        return self.crf.decode(tag_space)
+```
+
+## Advanced Features
+
+### 1. Custom Entity Recognition
+```python
+def create_custom_entity_patterns(nlp):
+    ruler = nlp.add_pipe("entity_ruler")
+    patterns = [
+        {"label": "PRODUCT", "pattern": "iPhone"},
+        {"label": "PRODUCT", "pattern": [{"LOWER": "mac"}, {"LOWER": "book"}]},
+    ]
+    ruler.add_patterns(patterns)
+    return nlp
+```
+
+### 2. Nested Entity Recognition
+```python
+def find_nested_entities(text, nlp):
+    doc = nlp(text)
+    entities = []
+    for ent in doc.ents:
+        # Find main entity
+        entities.append((ent.text, ent.label_))
+        # Look for nested entities
+        doc_nested = nlp(ent.text)
+        for nested_ent in doc_nested.ents:
+            if nested_ent.text != ent.text:
+                entities.append((nested_ent.text, nested_ent.label_))
+    return entities
+```
+
+## Best Practices
+
+### 1. Data Preparation
+- Consistent annotation
+- Handle special cases
+- Balance entity types
+
+### 2. Model Selection
+- Consider dataset size
+- Evaluate domain specificity
+- Balance accuracy and speed
+
+### 3. Evaluation
+- Use appropriate metrics
+- Consider partial matches
+- Evaluate by entity type
+
+## Implementation Example
+
+```python
+class NamedEntityRecognizer:
+    def __init__(self, model_type='spacy'):
+        self.model_type = model_type
+        if model_type == 'spacy':
+            self.nlp = spacy.load('en_core_web_sm')
+        else:
+            self.model = self.initialize_custom_model()
+    
+    def process_text(self, text):
+        if self.model_type == 'spacy':
+            doc = self.nlp(text)
+            return [(ent.text, ent.label_, ent.start_char, ent.end_char)
+                    for ent in doc.ents]
+        else:
+            return self.custom_process(text)
+    
+    def add_custom_entities(self, patterns):
+        if self.model_type == 'spacy':
+            ruler = self.nlp.get_pipe('entity_ruler')
+            ruler.add_patterns(patterns)
+    
+    def evaluate(self, texts, gold_entities):
+        predictions = [self.process_text(text) for text in texts]
+        return self.calculate_metrics(predictions, gold_entities)
+```
+
+## Applications
+
+1. **Information Extraction**:
+   - Resume parsing
+   - News analysis
+   - Document processing
+
+2. **Question Answering**:
+   - Entity-based queries
+   - Fact extraction
+   - Knowledge base population
+
+3. **Search Enhancement**:
+   - Entity-based search
+   - Faceted navigation
+   - Content recommendation
+
+## Challenges
+
+1. **Ambiguity**:
+   - Context dependency
+   - Entity overlap
+   - Multiple meanings
+
+2. **Coverage**:
+   - New entities
+   - Domain specificity
+   - Rare entities
+
+3. **Consistency**:
+   - Annotation guidelines
+   - Entity boundaries
+   - Entity types
+
+## Summary
+
+Named Entity Recognition is a fundamental NLP task that requires careful consideration of model selection, data preparation, and evaluation metrics. Modern approaches combine rule-based systems with machine learning models to achieve robust performance across different domains and entity types. 

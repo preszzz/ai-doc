@@ -1,0 +1,109 @@
+---
+title: Tokenization
+---
+
+Tokenization is the process of breaking down text into smaller units called tokens. These tokens can be words, characters, or subwords, serving as the fundamental building blocks for text processing.
+
+## Types of Tokenization
+
+### Word Tokenization
+Splits text into individual words:
+```python
+text = "The quick brown fox jumps."
+tokens = ["The", "quick", "brown", "fox", "jumps", "."]
+```
+
+### Character Tokenization
+Splits text into individual characters:
+```python
+text = "Hello"
+tokens = ["H", "e", "l", "l", "o"]
+```
+
+### Subword Tokenization
+Creates tokens that can be parts of words:
+```python
+# Using BPE tokenization
+text = "understanding"
+tokens = ["under", "stand", "ing"]
+```
+
+## Common Approaches
+
+### 1. Rule-Based
+- Split on whitespace
+- Handle punctuation
+- Consider special cases
+
+```python
+def simple_tokenize(text):
+    return text.split()
+```
+
+### 2. Regular Expressions
+More sophisticated pattern matching:
+```python
+import re
+
+def regex_tokenize(text):
+    return re.findall(r'\w+|[^\w\s]', text)
+```
+
+### 3. Advanced Tokenizers
+Modern NLP often uses subword tokenizers:
+- **WordPiece**: Used by BERT
+- **BPE (Byte-Pair Encoding)**: Used by GPT
+- **SentencePiece**: Language-agnostic approach
+
+## Best Practices
+
+1. **Preprocessing**:
+   - Convert to lowercase (if needed)
+   - Handle special characters
+   - Remove unwanted elements
+
+2. **Language Considerations**:
+   - Different languages need different approaches
+   - Consider Unicode normalization
+
+3. **Domain Specifics**:
+   - Handle domain-specific terms
+   - Preserve important symbols/numbers
+
+## Implementation Example
+
+```python
+from transformers import AutoTokenizer
+
+# Load a pretrained tokenizer
+tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+
+# Tokenize text
+text = "The quick brown fox jumps over the lazy dog."
+tokens = tokenizer.tokenize(text)
+print(tokens)
+
+# Convert to token IDs
+token_ids = tokenizer.encode(text)
+print(token_ids)
+```
+
+## Challenges
+
+1. **Ambiguity**:
+   - Word boundaries in different languages
+   - Handling contractions and abbreviations
+
+2. **Special Cases**:
+   - URLs and email addresses
+   - Hashtags and mentions
+   - Technical terms
+
+3. **Efficiency**:
+   - Processing large texts
+   - Memory management
+   - Speed considerations
+
+## Summary
+
+Tokenization is a crucial first step in NLP pipelines. The choice of tokenization method can significantly impact downstream tasks, making it essential to select appropriate approaches based on your specific use case. 

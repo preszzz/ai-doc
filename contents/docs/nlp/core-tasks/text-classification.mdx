@@ -1,0 +1,222 @@
+---
+title: Text Classification
+---
+
+Text classification is the task of assigning predefined categories to text documents. It's one of the fundamental tasks in NLP, with applications ranging from sentiment analysis to spam detection and topic categorization.
+
+## Basic Concepts
+
+### Classification Types
+1. **Binary Classification**:
+   - Two classes (e.g., spam/not spam)
+   - Sentiment (positive/negative)
+
+2. **Multi-class Classification**:
+   - Multiple exclusive classes
+   - Topic categorization
+
+3. **Multi-label Classification**:
+   - Multiple possible labels per document
+   - Tag prediction
+
+## Implementation Approaches
+
+### 1. Traditional Machine Learning
+```python
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+
+def create_classifier():
+    return Pipeline([
+        ('vectorizer', TfidfVectorizer()),
+        ('classifier', LogisticRegression())
+    ])
+```
+
+### 2. Deep Learning
+```python
+import torch.nn as nn
+
+class TextCNN(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, n_classes):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.conv1 = nn.Conv1d(embedding_dim, 128, 3)
+        self.pool = nn.AdaptiveMaxPool1d(1)
+        self.fc = nn.Linear(128, n_classes)
+        
+    def forward(self, x):
+        x = self.embedding(x)
+        x = x.permute(0, 2, 1)
+        x = self.conv1(x)
+        x = self.pool(x).squeeze(-1)
+        return self.fc(x)
+```
+
+### 3. Transformer-Based
+```python
+from transformers import AutoModelForSequenceClassification
+
+def create_transformer_classifier(model_name, num_labels):
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_name,
+        num_labels=num_labels
+    )
+    return model
+```
+
+## Advanced Techniques
+
+### 1. Data Augmentation
+```python
+def augment_text(text):
+    augmented = []
+    # Synonym replacement
+    augmented.append(replace_synonyms(text))
+    # Back translation
+    augmented.append(back_translate(text))
+    # Random insertion
+    augmented.append(random_insert(text))
+    return augmented
+```
+
+### 2. Hierarchical Classification
+```python
+class HierarchicalClassifier:
+    def __init__(self):
+        self.level1_classifier = create_classifier()
+        self.level2_classifiers = {}
+        
+    def train(self, texts, labels_l1, labels_l2):
+        # Train level 1
+        self.level1_classifier.fit(texts, labels_l1)
+        
+        # Train level 2 classifiers
+        for l1 in set(labels_l1):
+            mask = labels_l1 == l1
+            self.level2_classifiers[l1] = create_classifier()
+            self.level2_classifiers[l1].fit(
+                texts[mask], 
+                labels_l2[mask]
+            )
+```
+
+## Best Practices
+
+### 1. Data Preprocessing
+- Clean text data
+- Handle imbalanced classes
+- Split data appropriately
+
+### 2. Model Selection
+- Consider dataset size
+- Evaluate complexity needs
+- Balance accuracy and speed
+
+### 3. Evaluation
+- Use appropriate metrics
+- Perform cross-validation
+- Consider class distribution
+
+## Implementation Example
+
+```python
+class TextClassifier:
+    def __init__(self, model_type='transformer'):
+        self.model_type = model_type
+        if model_type == 'transformer':
+            self.model = create_transformer_classifier(
+                'bert-base-uncased', 
+                num_labels=2
+            )
+        else:
+            self.model = create_classifier()
+            
+    def preprocess(self, texts):
+        # Basic preprocessing
+        processed = []
+        for text in texts:
+            # Convert to lowercase
+            text = text.lower()
+            # Remove special characters
+            text = re.sub(r'[^\w\s]', '', text)
+            processed.append(text)
+        return processed
+    
+    def train(self, texts, labels):
+        # Preprocess texts
+        texts = self.preprocess(texts)
+        
+        # Train model
+        if self.model_type == 'transformer':
+            self.train_transformer(texts, labels)
+        else:
+            self.model.fit(texts, labels)
+            
+    def predict(self, texts):
+        texts = self.preprocess(texts)
+        return self.model.predict(texts)
+```
+
+## Applications
+
+1. **Content Categorization**:
+   - News classification
+   - Document routing
+   - Content filtering
+
+2. **Sentiment Analysis**:
+   - Product reviews
+   - Social media analysis
+   - Customer feedback
+
+3. **Intent Detection**:
+   - Chatbot queries
+   - Customer support
+   - Voice commands
+
+## Evaluation Metrics
+
+### 1. Classification Metrics
+```python
+from sklearn.metrics import classification_report
+
+def evaluate_classifier(y_true, y_pred):
+    return classification_report(
+        y_true, 
+        y_pred, 
+        output_dict=True
+    )
+```
+
+### 2. Custom Metrics
+```python
+def calculate_metrics(y_true, y_pred):
+    return {
+        'accuracy': accuracy_score(y_true, y_pred),
+        'macro_f1': f1_score(y_true, y_pred, average='macro'),
+        'weighted_f1': f1_score(y_true, y_pred, average='weighted')
+    }
+```
+
+## Challenges
+
+1. **Data Quality**:
+   - Noisy labels
+   - Imbalanced classes
+   - Limited training data
+
+2. **Model Complexity**:
+   - Overfitting
+   - Computational resources
+   - Model selection
+
+3. **Domain Adaptation**:
+   - Transfer learning
+   - Domain shift
+   - Concept drift
+
+## Summary
+
+Text classification is a versatile NLP task with numerous applications. Success depends on choosing appropriate models and techniques based on the specific requirements of the task, data characteristics, and computational constraints. Modern approaches, especially transformer-based models, have significantly improved classification performance across various domains. 

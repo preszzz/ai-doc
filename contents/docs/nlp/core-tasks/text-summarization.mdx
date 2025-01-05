@@ -1,0 +1,233 @@
+---
+title: Text Summarization
+---
+
+Text summarization is the task of creating concise and coherent summaries of longer documents while preserving key information and overall meaning. It can be either extractive (selecting existing sentences) or abstractive (generating new text).
+
+## Core Concepts
+
+### Types of Summarization
+
+1. **Extractive Summarization**:
+   - Selects important sentences from source
+   - Maintains original wording
+   - Easier to implement and evaluate
+
+2. **Abstractive Summarization**:
+   - Generates new text
+   - Requires language understanding
+   - More human-like summaries
+
+## Implementation Approaches
+
+### 1. Extractive Summarization
+```python
+from nltk.tokenize import sent_tokenize
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+class ExtractiveSummarizer:
+    def __init__(self):
+        self.stop_words = set(stopwords.words('english'))
+        self.vectorizer = TfidfVectorizer(stop_words='english')
+        
+    def summarize(self, text, num_sentences=3):
+        # Split into sentences
+        sentences = sent_tokenize(text)
+        
+        # Calculate sentence scores
+        tfidf_matrix = self.vectorizer.fit_transform(sentences)
+        sentence_scores = tfidf_matrix.sum(axis=1).A1
+        
+        # Select top sentences
+        top_indices = sentence_scores.argsort()[-num_sentences:]
+        summary = ' '.join([sentences[i] for i in sorted(top_indices)])
+        
+        return summary
+```
+
+### 2. Abstractive Summarization
+```python
+from transformers import (
+    BartForConditionalGeneration,
+    BartTokenizer
+)
+
+def abstractive_summarize(text):
+    tokenizer = BartTokenizer.from_pretrained('facebook/bart-large-cnn')
+    model = BartForConditionalGeneration.from_pretrained(
+        'facebook/bart-large-cnn'
+    )
+    
+    inputs = tokenizer(text, 
+                      return_tensors='pt', 
+                      max_length=1024, 
+                      truncation=True)
+    
+    summary_ids = model.generate(
+        inputs['input_ids'],
+        max_length=150,
+        min_length=40,
+        length_penalty=2.0,
+        num_beams=4,
+        early_stopping=True
+    )
+    
+    summary = tokenizer.decode(summary_ids[0], 
+                             skip_special_tokens=True)
+    return summary
+```
+
+## Advanced Features
+
+### 1. Topic-Based Summarization
+```python
+from gensim.summarization import summarize
+from gensim.models import LdaModel
+from gensim.corpora import Dictionary
+
+def topic_based_summary(text, num_topics=3):
+    # Preprocess text
+    sentences = sent_tokenize(text)
+    words = [preprocess(sent) for sent in sentences]
+    
+    # Create dictionary and corpus
+    dictionary = Dictionary(words)
+    corpus = [dictionary.doc2bow(word) for word in words]
+    
+    # Train LDA model
+    lda = LdaModel(corpus, 
+                   num_topics=num_topics, 
+                   id2word=dictionary)
+    
+    # Get topic distribution for each sentence
+    sentence_topics = [lda[doc] for doc in corpus]
+    
+    # Select sentences based on topic coverage
+    selected = select_diverse_sentences(sentences, 
+                                      sentence_topics)
+    return ' '.join(selected)
+```
+
+### 2. Multi-Document Summarization
+```python
+class MultiDocSummarizer:
+    def __init__(self):
+        self.single_doc_summarizer = ExtractiveSummarizer()
+        
+    def summarize(self, documents, summary_length=200):
+        # Get individual summaries
+        summaries = [
+            self.single_doc_summarizer.summarize(doc)
+            for doc in documents
+        ]
+        
+        # Combine and remove redundancy
+        combined = self.merge_summaries(summaries)
+        
+        # Trim to desired length
+        return self.trim_summary(combined, summary_length)
+```
+
+## Best Practices
+
+### 1. Preprocessing
+- Clean input text
+- Handle special characters
+- Normalize content
+
+### 2. Model Selection
+- Consider input length
+- Evaluate output requirements
+- Balance quality and speed
+
+### 3. Evaluation
+- Use ROUGE metrics
+- Human evaluation
+- Check for factual accuracy
+
+## Implementation Example
+
+```python
+class HybridSummarizer:
+    def __init__(self, mode='auto'):
+        self.mode = mode
+        self.extractive = ExtractiveSummarizer()
+        self.abstractive = BartForConditionalGeneration.from_pretrained(
+            'facebook/bart-large-cnn'
+        )
+        self.tokenizer = BartTokenizer.from_pretrained(
+            'facebook/bart-large-cnn'
+        )
+    
+    def summarize(self, text, max_length=150):
+        if self.mode == 'auto':
+            # Choose method based on text length
+            if len(text.split()) > 1000:
+                return self.extractive_summarize(text)
+            else:
+                return self.abstractive_summarize(text)
+        elif self.mode == 'extractive':
+            return self.extractive_summarize(text)
+        else:
+            return self.abstractive_summarize(text)
+    
+    def extractive_summarize(self, text):
+        return self.extractive.summarize(text)
+    
+    def abstractive_summarize(self, text):
+        inputs = self.tokenizer(text, 
+                              return_tensors='pt', 
+                              max_length=1024, 
+                              truncation=True)
+        
+        summary_ids = self.abstractive.generate(
+            inputs['input_ids'],
+            max_length=150,
+            min_length=40,
+            length_penalty=2.0,
+            num_beams=4,
+            early_stopping=True
+        )
+        
+        return self.tokenizer.decode(summary_ids[0], 
+                                   skip_special_tokens=True)
+```
+
+## Applications
+
+1. **Content Curation**:
+   - News summarization
+   - Document abstraction
+   - Research paper summaries
+
+2. **Information Management**:
+   - Meeting notes
+   - Email digests
+   - Report generation
+
+3. **Knowledge Discovery**:
+   - Literature review
+   - Trend analysis
+   - Content aggregation
+
+## Challenges
+
+1. **Content Selection**:
+   - Identifying key information
+   - Maintaining coherence
+   - Handling redundancy
+
+2. **Quality Control**:
+   - Factual accuracy
+   - Grammatical correctness
+   - Semantic consistency
+
+3. **Domain Adaptation**:
+   - Technical content
+   - Multiple languages
+   - Domain-specific terminology
+
+## Summary
+
+Text summarization is a complex task that requires balancing information retention with conciseness. Modern approaches, particularly neural models, have significantly improved summarization quality, though challenges remain in ensuring factual accuracy and domain adaptation. 

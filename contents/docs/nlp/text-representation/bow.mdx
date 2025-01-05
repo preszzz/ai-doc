@@ -1,0 +1,179 @@
+---
+title: Bag of Words (BoW)
+---
+
+Bag of Words (BoW) is a fundamental text representation technique that converts text into fixed-length vectors by counting word frequencies, disregarding grammar and word order but maintaining multiplicity.
+
+## Basic Concept
+
+The BoW model represents text as a "bag" (multiset) of its words:
+- Each document becomes a vector
+- Each position corresponds to a word in the vocabulary
+- Values represent word frequencies
+
+## Implementation
+
+### Simple BoW
+```python
+from collections import Counter
+from sklearn.feature_extraction.text import CountVectorizer
+
+def simple_bow(documents):
+    # Initialize vectorizer
+    vectorizer = CountVectorizer()
+    
+    # Fit and transform documents
+    X = vectorizer.fit_transform(documents)
+    
+    # Get feature names (vocabulary)
+    vocab = vectorizer.get_feature_names_out()
+    
+    return X, vocab
+
+# Example usage
+documents = [
+    "The cat sat on the mat",
+    "The dog ran in the park"
+]
+X, vocab = simple_bow(documents)
+```
+
+## Advanced Features
+
+### 1. N-gram Support
+```python
+def ngram_bow(documents, ngram_range=(1, 2)):
+    vectorizer = CountVectorizer(
+        ngram_range=ngram_range,
+        stop_words='english'
+    )
+    X = vectorizer.fit_transform(documents)
+    return X, vectorizer.get_feature_names_out()
+```
+
+### 2. Custom Preprocessing
+```python
+def custom_bow(documents):
+    vectorizer = CountVectorizer(
+        preprocessor=custom_preprocessor,
+        tokenizer=custom_tokenizer,
+        token_pattern=None
+    )
+    return vectorizer.fit_transform(documents)
+```
+
+## Variations
+
+### 1. Binary BoW
+Only considers presence/absence of words:
+```python
+def binary_bow(documents):
+    vectorizer = CountVectorizer(binary=True)
+    return vectorizer.fit_transform(documents)
+```
+
+### 2. Frequency-Limited BoW
+Filters words based on document frequency:
+```python
+def filtered_bow(documents, min_df=2, max_df=0.95):
+    vectorizer = CountVectorizer(
+        min_df=min_df,  # Minimum document frequency
+        max_df=max_df   # Maximum document frequency
+    )
+    return vectorizer.fit_transform(documents)
+```
+
+## Applications
+
+1. **Document Classification**:
+   - Topic categorization
+   - Spam detection
+   - Sentiment analysis
+
+2. **Information Retrieval**:
+   - Document similarity
+   - Search relevance
+   - Content recommendation
+
+## Best Practices
+
+### 1. Preprocessing
+- Remove stop words
+- Apply stemming/lemmatization
+- Handle case sensitivity
+
+### 2. Vocabulary Management
+- Set minimum frequency threshold
+- Remove rare/common words
+- Consider domain-specific terms
+
+### 3. Feature Selection
+- Remove irrelevant features
+- Use dimensionality reduction
+- Consider word importance
+
+## Implementation Example
+
+```python
+class BowAnalyzer:
+    def __init__(self, 
+                 ngram_range=(1, 1),
+                 min_df=1,
+                 max_df=1.0,
+                 binary=False):
+        self.vectorizer = CountVectorizer(
+            ngram_range=ngram_range,
+            min_df=min_df,
+            max_df=max_df,
+            binary=binary,
+            stop_words='english'
+        )
+        
+    def fit_transform(self, documents):
+        # Transform documents to BoW representation
+        bow_matrix = self.vectorizer.fit_transform(documents)
+        
+        # Get feature names
+        features = self.vectorizer.get_feature_names_out()
+        
+        return bow_matrix, features
+    
+    def transform(self, documents):
+        return self.vectorizer.transform(documents)
+    
+    def get_vocabulary(self):
+        return self.vectorizer.vocabulary_
+```
+
+## Advantages
+
+1. **Simplicity**:
+   - Easy to implement
+   - Intuitive representation
+   - Fast computation
+
+2. **Effectiveness**:
+   - Works well for basic tasks
+   - Captures term frequency
+   - Suitable for classification
+
+## Limitations
+
+1. **Loss of Order**:
+   - Ignores word sequence
+   - Loses grammatical structure
+   - No semantic context
+
+2. **Sparsity**:
+   - High-dimensional vectors
+   - Many zero values
+   - Memory intensive
+
+3. **Semantic Loss**:
+   - No word relationships
+   - No meaning preservation
+   - Limited context understanding
+
+## Summary
+
+Bag of Words is a foundational text representation technique that, despite its simplicity, remains useful for many NLP tasks. While it has limitations in capturing semantic meaning and word order, its simplicity and effectiveness make it a valuable starting point for text analysis tasks. 

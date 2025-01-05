@@ -1,0 +1,288 @@
+---
+title: 'NLP-Based Recommendation Systems'
+description: 'Learn how to build recommendation systems using NLP techniques'
+icon: 'thumbs-up'
+draft: false
+---
+
+# NLP-Based Recommendation Systems
+
+Recommendation systems powered by NLP techniques help users discover relevant content by analyzing text data and user preferences.
+
+## Introduction
+
+NLP-based recommendation systems combine text analysis with traditional recommendation approaches to provide more accurate and context-aware suggestions.
+
+## Basic Approaches
+
+### 1. Content-Based Filtering
+```python
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+class ContentBasedRecommender:
+    def __init__(self):
+        self.vectorizer = TfidfVectorizer(max_features=5000)
+        
+    def fit(self, items, descriptions):
+        self.items = items
+        self.item_vectors = self.vectorizer.fit_transform(descriptions)
+        
+    def recommend(self, item_id, n=5):
+        item_idx = self.items.index(item_id)
+        similarities = cosine_similarity(
+            self.item_vectors[item_idx], 
+            self.item_vectors
+        ).flatten()
+        
+        similar_indices = similarities.argsort()[::-1][1:n+1]
+        return [(self.items[idx], similarities[idx]) 
+                for idx in similar_indices]
+```
+
+### 2. Collaborative Filtering with Text
+```python
+import numpy as np
+from scipy.sparse import vstack
+
+class HybridRecommender:
+    def __init__(self):
+        self.user_vectors = {}
+        self.item_vectors = None
+        
+    def create_user_profile(self, user_interactions):
+        """Combine user interactions with item content"""
+        interaction_vector = np.zeros(len(self.items))
+        for item_id, rating in user_interactions:
+            idx = self.items.index(item_id)
+            interaction_vector[idx] = rating
+            
+        return interaction_vector
+```
+
+## Advanced Techniques
+
+### 1. Neural Content-Based Filtering
+```python
+import torch
+import torch.nn as nn
+
+class NeuralRecommender(nn.Module):
+    def __init__(self, vocab_size, embedding_dim):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.encoder = nn.Sequential(
+            nn.Linear(embedding_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU()
+        )
+        
+    def forward(self, x):
+        embedded = self.embedding(x)
+        return self.encoder(embedded.mean(dim=1))
+```
+
+### 2. Attention-Based Recommendation
+```python
+from transformers import AutoModel, AutoTokenizer
+
+class AttentionRecommender:
+    def __init__(self, model_name="bert-base-uncased"):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name)
+        
+    def encode_text(self, text):
+        inputs = self.tokenizer(text, return_tensors="pt", padding=True)
+        outputs = self.model(**inputs)
+        return outputs.last_hidden_state.mean(dim=1)
+```
+
+## Feature Engineering
+
+### 1. Text Processing
+```python
+def process_item_text(item):
+    # Combine relevant text fields
+    text = f"{item['title']} {item['description']} {' '.join(item['tags'])}"
+    
+    # Clean and normalize
+    text = clean_text(text)
+    
+    # Extract key phrases
+    key_phrases = extract_key_phrases(text)
+    
+    return {
+        'processed_text': text,
+        'key_phrases': key_phrases
+    }
+```
+
+### 2. User Profile Creation
+```python
+def create_user_profile(user_interactions, items):
+    profile = defaultdict(float)
+    
+    for item_id, rating in user_interactions:
+        item = items[item_id]
+        for feature in item['features']:
+            profile[feature] += rating
+            
+    # Normalize profile
+    total = sum(profile.values())
+    if total > 0:
+        for feature in profile:
+            profile[feature] /= total
+            
+    return profile
+```
+
+## Model Training
+
+### 1. Training Pipeline
+```python
+class RecommenderTrainer:
+    def __init__(self, model, optimizer):
+        self.model = model
+        self.optimizer = optimizer
+        
+    def train_epoch(self, dataloader):
+        self.model.train()
+        total_loss = 0
+        
+        for batch in dataloader:
+            self.optimizer.zero_grad()
+            loss = self.model.compute_loss(batch)
+            loss.backward()
+            self.optimizer.step()
+            total_loss += loss.item()
+            
+        return total_loss / len(dataloader)
+```
+
+### 2. Evaluation
+```python
+def evaluate_recommendations(model, test_data):
+    metrics = {
+        'precision': [],
+        'recall': [],
+        'ndcg': []
+    }
+    
+    for user, true_items in test_data.items():
+        recommended_items = model.recommend(user, k=10)
+        
+        # Calculate metrics
+        precision = calculate_precision(true_items, recommended_items)
+        recall = calculate_recall(true_items, recommended_items)
+        ndcg = calculate_ndcg(true_items, recommended_items)
+        
+        metrics['precision'].append(precision)
+        metrics['recall'].append(recall)
+        metrics['ndcg'].append(ndcg)
+        
+    return {k: np.mean(v) for k, v in metrics.items()}
+```
+
+## Deployment
+
+### 1. Model Serving
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class RecommendationRequest(BaseModel):
+    user_id: str
+    n_recommendations: int = 10
+
+@app.post("/recommend")
+async def get_recommendations(request: RecommendationRequest):
+    recommendations = recommender.recommend(
+        request.user_id,
+        n=request.n_recommendations
+    )
+    return {"recommendations": recommendations}
+```
+
+### 2. Caching
+```python
+from functools import lru_cache
+
+@lru_cache(maxsize=1000)
+def get_item_embedding(item_id):
+    item = load_item(item_id)
+    return model.encode_text(item['description'])
+```
+
+## Advanced Features
+
+### 1. Contextual Recommendations
+```python
+def get_contextual_recommendations(user_id, context):
+    # Get user profile
+    user_profile = get_user_profile(user_id)
+    
+    # Get context embedding
+    context_embedding = model.encode_text(context)
+    
+    # Combine user profile with context
+    combined_vector = combine_vectors(
+        user_profile,
+        context_embedding,
+        alpha=0.7  # Weight for user profile
+    )
+    
+    return find_similar_items(combined_vector)
+```
+
+### 2. Diversity Enhancement
+```python
+def diversify_recommendations(recommendations, diversity_threshold=0.3):
+    diverse_recommendations = []
+    for item in recommendations:
+        # Check similarity with already selected items
+        similarities = [
+            calculate_similarity(item, selected)
+            for selected in diverse_recommendations
+        ]
+        
+        if not similarities or max(similarities) < diversity_threshold:
+            diverse_recommendations.append(item)
+            
+    return diverse_recommendations
+```
+
+## Best Practices
+
+1. **Data Quality**
+   - Clean text data
+   - Handle missing values
+   - Regular updates
+
+2. **Model Selection**
+   - Consider scale requirements
+   - Balance accuracy and latency
+   - Evaluate complexity
+
+3. **User Experience**
+   - Explanation generation
+   - Feedback collection
+   - A/B testing
+
+## Future Directions
+
+1. **Personalization**
+   - Dynamic user profiles
+   - Multi-modal recommendations
+   - Context adaptation
+
+2. **Scalability**
+   - Distributed processing
+   - Efficient indexing
+   - Real-time updates
+
+## Conclusion
+
+NLP-based recommendation systems offer powerful ways to understand and match user preferences with content. Continuous improvements in NLP techniques and architectures keep enhancing their capabilities. 
