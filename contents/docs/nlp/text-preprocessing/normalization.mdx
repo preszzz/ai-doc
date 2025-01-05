@@ -1,0 +1,131 @@
+---
+title: Text Normalization
+---
+
+Text normalization is the process of transforming text into a standard, canonical form. This crucial preprocessing step helps reduce text variations and improves the consistency of text analysis.
+
+## Common Normalization Techniques
+
+### 1. Case Normalization
+Converting text to lowercase or uppercase:
+```python
+text = "The Quick Brown Fox"
+normalized = text.lower()
+# Result: "the quick brown fox"
+```
+
+### 2. Unicode Normalization
+Handling different Unicode representations:
+```python
+import unicodedata
+
+def normalize_unicode(text):
+    return unicodedata.normalize('NFKC', text)
+```
+
+### 3. Punctuation Handling
+Removing or standardizing punctuation:
+```python
+import re
+
+def remove_punctuation(text):
+    return re.sub(r'[^\w\s]', '', text)
+```
+
+## Advanced Normalization
+
+### 1. Text Cleaning
+- Removing HTML tags
+- Handling special characters
+- Standardizing whitespace
+
+```python
+def clean_text(text):
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    # Standardize whitespace
+    text = ' '.join(text.split())
+    return text
+```
+
+### 2. Number Standardization
+```python
+def normalize_numbers(text):
+    # Convert numbers to words or standard format
+    text = re.sub(r'\d+', 'NUM', text)
+    return text
+```
+
+### 3. Accent Removal
+```python
+def remove_accents(text):
+    return ''.join(c for c in unicodedata.normalize('NFD', text)
+                  if unicodedata.category(c) != 'Mn')
+```
+
+## Language-Specific Considerations
+
+1. **English**:
+   - Contractions handling
+   - British vs. American spelling
+
+2. **Other Languages**:
+   - Diacritics handling
+   - Character encoding
+   - Script normalization
+
+## Best Practices
+
+1. **Order of Operations**:
+   - Start with Unicode normalization
+   - Follow with case normalization
+   - Then apply specific cleanings
+
+2. **Preservation**:
+   - Keep original text when needed
+   - Document transformations
+   - Consider reversibility
+
+3. **Validation**:
+   - Check for information loss
+   - Verify language specifics
+   - Test edge cases
+
+## Implementation Example
+
+```python
+def normalize_text(text, lang='en'):
+    # Unicode normalization
+    text = unicodedata.normalize('NFKC', text)
+    
+    # Lowercase
+    text = text.lower()
+    
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+    
+    # Language-specific handling
+    if lang == 'en':
+        # Handle contractions
+        text = handle_contractions(text)
+    
+    return text
+```
+
+## Common Pitfalls
+
+1. **Over-normalization**:
+   - Losing important distinctions
+   - Removing crucial context
+
+2. **Under-normalization**:
+   - Missing important variations
+   - Inconsistent processing
+
+3. **Language Assumptions**:
+   - Applying English rules to other languages
+   - Ignoring cultural context
+
+## Summary
+
+Text normalization is essential for consistent NLP processing but requires careful consideration of the specific use case and language context. The right balance of normalization techniques can significantly improve downstream task performance. 

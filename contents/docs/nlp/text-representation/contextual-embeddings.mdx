@@ -1,0 +1,214 @@
+---
+title: Contextual Embeddings
+---
+
+Contextual embeddings are dynamic word representations that change based on the context in which words appear. Unlike static word embeddings, they capture word meaning in context, addressing polysemy and contextual variations.
+
+## Core Concepts
+
+### Context-Dependent Representation
+- Words have different vectors in different contexts
+- Captures word sense disambiguation
+- Preserves contextual information
+
+## Types of Models
+
+### 1. BERT (Bidirectional Encoder Representations from Transformers)
+```python
+from transformers import BertModel, BertTokenizer
+
+def get_bert_embeddings(text):
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    model = BertModel.from_pretrained('bert-base-uncased')
+    
+    inputs = tokenizer(text, return_tensors="pt",
+                      padding=True, truncation=True)
+    outputs = model(**inputs)
+    
+    return outputs.last_hidden_state
+```
+
+### 2. GPT (Generative Pre-trained Transformer)
+```python
+from transformers import GPT2Model, GPT2Tokenizer
+
+def get_gpt_embeddings(text):
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    model = GPT2Model.from_pretrained('gpt2')
+    
+    inputs = tokenizer(text, return_tensors="pt")
+    outputs = model(**inputs)
+    
+    return outputs.last_hidden_state
+```
+
+### 3. RoBERTa
+```python
+from transformers import RobertaModel, RobertaTokenizer
+
+def get_roberta_embeddings(text):
+    tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+    model = RobertaModel.from_pretrained('roberta-base')
+    
+    inputs = tokenizer(text, return_tensors="pt")
+    outputs = model(**inputs)
+    
+    return outputs.last_hidden_state
+```
+
+## Implementation
+
+### Basic Usage
+```python
+class ContextualEmbedder:
+    def __init__(self, model_name='bert-base-uncased'):
+        self.tokenizer = BertTokenizer.from_pretrained(model_name)
+        self.model = BertModel.from_pretrained(model_name)
+        
+    def get_embeddings(self, text, layer=-1):
+        inputs = self.tokenizer(text,
+                              return_tensors="pt",
+                              padding=True,
+                              truncation=True)
+        
+        outputs = self.model(**inputs)
+        
+        # Get specific layer embeddings
+        if layer == -1:
+            return outputs.last_hidden_state
+        else:
+            return outputs.hidden_states[layer]
+```
+
+## Advanced Features
+
+### 1. Layer Selection
+Different layers capture different aspects:
+```python
+def get_layer_embeddings(text, model, layer_nums):
+    outputs = model(text, output_hidden_states=True)
+    
+    # Get specified layers
+    selected_layers = [outputs.hidden_states[i] 
+                      for i in layer_nums]
+    
+    return selected_layers
+```
+
+### 2. Subword Aggregation
+```python
+def aggregate_subwords(tokens, embeddings):
+    word_embeddings = []
+    current_word = []
+    
+    for token, embedding in zip(tokens, embeddings):
+        if token.startswith('##'):
+            current_word.append(embedding)
+        else:
+            if current_word:
+                word_embeddings.append(torch.mean(
+                    torch.stack(current_word), dim=0))
+            current_word = [embedding]
+    
+    return word_embeddings
+```
+
+## Applications
+
+1. **Advanced NLP Tasks**:
+   - Named Entity Recognition
+   - Question Answering
+   - Text Classification
+
+2. **Semantic Analysis**:
+   - Word Sense Disambiguation
+   - Semantic Role Labeling
+   - Coreference Resolution
+
+## Best Practices
+
+### 1. Model Selection
+- Consider task requirements
+- Balance size and performance
+- Evaluate domain compatibility
+
+### 2. Fine-tuning
+- Adapt to specific domains
+- Use task-specific data
+- Monitor overfitting
+
+### 3. Resource Management
+- Handle batch processing
+- Implement caching
+- Optimize memory usage
+
+## Implementation Example
+
+```python
+class AdvancedContextualEmbedder:
+    def __init__(self,
+                 model_name='bert-base-uncased',
+                 max_length=512):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name)
+        self.max_length = max_length
+        
+    def get_contextual_embeddings(self,
+                                text,
+                                layers=None,
+                                pooling='mean'):
+        # Tokenize
+        inputs = self.tokenizer(text,
+                              return_tensors="pt",
+                              padding=True,
+                              truncation=True,
+                              max_length=self.max_length)
+        
+        # Get embeddings
+        outputs = self.model(**inputs,
+                           output_hidden_states=True)
+        
+        # Select layers
+        if layers is None:
+            embeddings = outputs.last_hidden_state
+        else:
+            embeddings = torch.stack(
+                [outputs.hidden_states[i] for i in layers]
+            ).mean(dim=0)
+        
+        # Apply pooling
+        if pooling == 'mean':
+            return embeddings.mean(dim=1)
+        elif pooling == 'max':
+            return embeddings.max(dim=1)[0]
+        
+        return embeddings
+```
+
+## Advantages
+
+1. **Context Awareness**:
+   - Dynamic representations
+   - Word sense disambiguation
+   - Contextual understanding
+
+2. **Performance**:
+   - State-of-the-art results
+   - Transfer learning
+   - Few-shot capabilities
+
+## Limitations
+
+1. **Computational Cost**:
+   - Resource intensive
+   - Slower processing
+   - Memory requirements
+
+2. **Complexity**:
+   - Model complexity
+   - Training difficulty
+   - Parameter tuning
+
+## Summary
+
+Contextual embeddings represent a significant advancement in text representation, offering dynamic, context-aware word vectors. While they require more computational resources than static embeddings, their superior performance in capturing word meaning and context makes them invaluable for modern NLP applications. 

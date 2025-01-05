@@ -1,0 +1,231 @@
+---
+title: 'NLP Evaluation Metrics'
+description: 'Learn about various metrics used to evaluate NLP models and tasks'
+icon: 'chart-line'
+draft: false
+---
+
+# NLP Evaluation Metrics
+
+Evaluation metrics are essential for assessing the performance of NLP models and comparing different approaches. This guide covers common metrics used across various NLP tasks.
+
+## Classification Metrics
+
+### 1. Basic Metrics
+```python
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+
+# Calculate basic metrics
+accuracy = accuracy_score(y_true, y_pred)
+precision, recall, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='weighted')
+```
+
+### 2. Confusion Matrix
+```python
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+
+# Create confusion matrix
+cm = confusion_matrix(y_true, y_pred)
+sns.heatmap(cm, annot=True, fmt='d')
+```
+
+## Text Generation Metrics
+
+### 1. BLEU Score
+```python
+from nltk.translate.bleu_score import corpus_bleu
+
+# Calculate BLEU score
+references = [[reference.split()] for reference in reference_texts]
+candidates = [candidate.split() for candidate in candidate_texts]
+bleu_score = corpus_bleu(references, candidates)
+```
+
+### 2. ROUGE Score
+```python
+from rouge_score import rouge_scorer
+
+# Calculate ROUGE scores
+scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'])
+scores = scorer.score(reference, candidate)
+```
+
+### 3. METEOR Score
+```python
+from nltk.translate.meteor_score import meteor_score
+
+# Calculate METEOR score
+meteor = meteor_score.single_meteor_score(reference, candidate)
+```
+
+## Language Model Metrics
+
+### 1. Perplexity
+```python
+import torch
+import torch.nn.functional as F
+
+def calculate_perplexity(model, data_loader):
+    total_loss = 0
+    total_tokens = 0
+    
+    for batch in data_loader:
+        outputs = model(batch)
+        loss = F.cross_entropy(outputs.logits.view(-1, outputs.logits.size(-1)), 
+                             batch['labels'].view(-1))
+        total_loss += loss.item() * batch['labels'].ne(-100).sum().item()
+        total_tokens += batch['labels'].ne(-100).sum().item()
+    
+    return torch.exp(torch.tensor(total_loss / total_tokens))
+```
+
+## Information Retrieval Metrics
+
+### 1. Mean Average Precision (MAP)
+```python
+from sklearn.metrics import average_precision_score
+
+# Calculate MAP
+map_score = average_precision_score(y_true, y_scores)
+```
+
+### 2. Normalized Discounted Cumulative Gain (NDCG)
+```python
+from sklearn.metrics import ndcg_score
+
+# Calculate NDCG
+ndcg = ndcg_score(y_true.reshape(1, -1), y_scores.reshape(1, -1))
+```
+
+## Word Embedding Metrics
+
+### 1. Cosine Similarity
+```python
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+def word_similarity(word1_vec, word2_vec):
+    return cosine_similarity(
+        word1_vec.reshape(1, -1), 
+        word2_vec.reshape(1, -1)
+    )[0][0]
+```
+
+### 2. Word Analogy Task
+```python
+def analogy_accuracy(model, analogy_pairs):
+    correct = 0
+    total = len(analogy_pairs)
+    
+    for a, b, c, d in analogy_pairs:
+        predicted = model.most_similar(
+            positive=[b, c],
+            negative=[a],
+            topn=1
+        )[0][0]
+        if predicted == d:
+            correct += 1
+    
+    return correct / total
+```
+
+## Machine Translation Metrics
+
+### 1. Translation Error Rate (TER)
+```python
+from sacrebleu.metrics import TER
+
+# Calculate TER
+ter = TER()
+ter_score = ter.corpus_score(predictions, [references])
+```
+
+### 2. chrF Score
+```python
+from sacrebleu.metrics import CHRF
+
+# Calculate chrF
+chrf = CHRF()
+chrf_score = chrf.corpus_score(predictions, [references])
+```
+
+## Custom Evaluation Functions
+
+### 1. Task-Specific Metrics
+```python
+def custom_metric(predictions, references, **kwargs):
+    """
+    Custom evaluation metric for specific task requirements
+    """
+    # Implementation specific to task
+    pass
+```
+
+### 2. Multi-Metric Evaluation
+```python
+def evaluate_model(model, test_data, metrics=['accuracy', 'f1', 'precision', 'recall']):
+    results = {}
+    predictions = model.predict(test_data)
+    
+    for metric in metrics:
+        if metric == 'accuracy':
+            results[metric] = accuracy_score(test_data.labels, predictions)
+        elif metric in ['f1', 'precision', 'recall']:
+            results.update(zip(
+                metrics,
+                precision_recall_fscore_support(test_data.labels, predictions, average='weighted')[:3]
+            ))
+    
+    return results
+```
+
+## Best Practices
+
+1. **Metric Selection**
+   - Task appropriateness
+   - Dataset characteristics
+   - Business requirements
+
+2. **Evaluation Setup**
+   - Train/validation/test splits
+   - Cross-validation
+   - Statistical significance
+
+3. **Reporting**
+   - Confidence intervals
+   - Error analysis
+   - Baseline comparisons
+
+## Common Pitfalls
+
+1. **Data Leakage**
+   - Proper data splitting
+   - Feature independence
+   - Cross-validation setup
+
+2. **Metric Misuse**
+   - Inappropriate metrics
+   - Incomplete evaluation
+   - Biased comparisons
+
+3. **Implementation Errors**
+   - Edge cases
+   - Numerical stability
+   - Performance issues
+
+## Future Trends
+
+1. **Human-Aligned Evaluation**
+   - Human feedback integration
+   - Context-aware metrics
+   - User satisfaction measures
+
+2. **Automated Evaluation**
+   - Meta-learning for metrics
+   - Dynamic evaluation
+   - Continuous assessment
+
+## Conclusion
+
+Choosing appropriate evaluation metrics is crucial for developing effective NLP models. A comprehensive evaluation strategy should combine multiple metrics and consider both quantitative and qualitative aspects of model performance. 

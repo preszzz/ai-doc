@@ -1,0 +1,222 @@
+---
+title: Information Retrieval
+---
+
+Information Retrieval (IR) is the task of finding relevant documents or information from a large collection in response to a user query. Modern IR systems combine traditional techniques with deep learning to improve search accuracy and relevance.
+
+## Core Concepts
+
+### Retrieval Types
+1. **Boolean Retrieval**:
+   - Exact match queries
+   - Logical operators (AND, OR, NOT)
+   - Document filtering
+
+2. **Ranked Retrieval**:
+   - Relevance scoring
+   - Similarity measures
+   - Ranking algorithms
+
+3. **Semantic Search**:
+   - Meaning-based matching
+   - Contextual understanding
+   - Vector similarity
+
+## Implementation Approaches
+
+### 1. Traditional IR
+```python
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+class TfidfRetriever:
+    def __init__(self):
+        self.vectorizer = TfidfVectorizer()
+        self.doc_vectors = None
+        self.documents = None
+        
+    def index_documents(self, documents):
+        self.documents = documents
+        self.doc_vectors = self.vectorizer.fit_transform(documents)
+        
+    def search(self, query, top_k=5):
+        query_vector = self.vectorizer.transform([query])
+        similarities = cosine_similarity(query_vector, 
+                                      self.doc_vectors)
+        
+        top_indices = similarities[0].argsort()[-top_k:][::-1]
+        return [(self.documents[i], similarities[0][i]) 
+                for i in top_indices]
+```
+
+### 2. Dense Retrieval
+```python
+from transformers import DPRQuestionEncoder, DPRContextEncoder
+
+class DenseRetriever:
+    def __init__(self):
+        self.question_encoder = DPRQuestionEncoder.from_pretrained(
+            'facebook/dpr-question_encoder-single-nq-base'
+        )
+        self.context_encoder = DPRContextEncoder.from_pretrained(
+            'facebook/dpr-ctx_encoder-single-nq-base'
+        )
+        
+    def encode_query(self, query):
+        return self.question_encoder(query).pooler_output
+        
+    def encode_documents(self, documents):
+        return self.context_encoder(documents).pooler_output
+        
+    def search(self, query, document_embeddings, top_k=5):
+        query_embedding = self.encode_query(query)
+        scores = torch.matmul(query_embedding, 
+                            document_embeddings.transpose(0, 1))
+        top_indices = torch.topk(scores, k=top_k).indices
+        return top_indices.tolist()
+```
+
+## Advanced Features
+
+### 1. Query Expansion
+```python
+from nltk.corpus import wordnet
+
+def expand_query(query):
+    expanded_terms = set()
+    
+    # Add original terms
+    for word in query.split():
+        expanded_terms.add(word)
+        
+        # Add synonyms
+        for syn in wordnet.synsets(word):
+            for lemma in syn.lemmas():
+                expanded_terms.add(lemma.name())
+                
+    return ' '.join(expanded_terms)
+```
+
+### 2. Relevance Feedback
+```python
+class RelevanceFeedbackRetriever:
+    def __init__(self, base_retriever):
+        self.base_retriever = base_retriever
+        
+    def search_with_feedback(self, query, 
+                           relevant_docs=None, 
+                           irrelevant_docs=None):
+        # Initial search
+        results = self.base_retriever.search(query)
+        
+        if relevant_docs or irrelevant_docs:
+            # Modify query based on feedback
+            expanded_query = self.modify_query(
+                query, 
+                relevant_docs, 
+                irrelevant_docs
+            )
+            # New search with modified query
+            results = self.base_retriever.search(expanded_query)
+            
+        return results
+```
+
+## Best Practices
+
+### 1. Indexing
+- Efficient data structures
+- Incremental updates
+- Optimization strategies
+
+### 2. Query Processing
+- Query understanding
+- Query optimization
+- Error tolerance
+
+### 3. Ranking
+- Multiple ranking signals
+- Personalization
+- Performance metrics
+
+## Implementation Example
+
+```python
+class HybridSearchEngine:
+    def __init__(self):
+        self.sparse_retriever = TfidfRetriever()
+        self.dense_retriever = DenseRetriever()
+        self.index = {}
+        
+    def index_documents(self, documents):
+        # Sparse indexing
+        self.sparse_retriever.index_documents(documents)
+        
+        # Dense indexing
+        doc_embeddings = self.dense_retriever.encode_documents(
+            documents
+        )
+        self.index['dense_embeddings'] = doc_embeddings
+        self.index['documents'] = documents
+        
+    def search(self, query, method='hybrid', top_k=5):
+        if method == 'sparse':
+            return self.sparse_retriever.search(query, top_k)
+        elif method == 'dense':
+            return self.dense_retriever.search(
+                query,
+                self.index['dense_embeddings'],
+                top_k
+            )
+        else:
+            # Combine both methods
+            sparse_results = self.sparse_retriever.search(
+                query, 
+                top_k
+            )
+            dense_results = self.dense_retriever.search(
+                query,
+                self.index['dense_embeddings'],
+                top_k
+            )
+            return self.merge_results(sparse_results, 
+                                    dense_results)
+```
+
+## Applications
+
+1. **Search Systems**:
+   - Document search
+   - Enterprise search
+   - Web search
+
+2. **Question Answering**:
+   - Passage retrieval
+   - Evidence finding
+   - Knowledge base queries
+
+3. **Recommendation Systems**:
+   - Content-based filtering
+   - Similar item search
+   - Personalized recommendations
+
+## Challenges
+
+1. **Scale**:
+   - Large document collections
+   - Real-time updates
+   - Query performance
+
+2. **Quality**:
+   - Relevance ranking
+   - Query understanding
+   - Result diversity
+
+3. **User Experience**:
+   - Query suggestions
+   - Result presentation
+   - Error handling
+
+## Summary
+
+Information Retrieval combines traditional techniques with modern neural approaches to provide effective search capabilities. Success depends on careful consideration of indexing strategies, query processing, and ranking algorithms, while addressing challenges of scale and quality. 

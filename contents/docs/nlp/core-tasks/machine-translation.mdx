@@ -1,0 +1,225 @@
+---
+title: Machine Translation
+---
+
+Machine Translation (MT) is the task of automatically translating text from one language to another. Modern MT systems use neural networks and transformer architectures to achieve high-quality translations while maintaining semantic meaning and fluency.
+
+## Core Concepts
+
+### Translation Types
+1. **Statistical MT**:
+   - Based on parallel corpora
+   - Phrase-based translation
+   - Statistical language models
+
+2. **Neural MT**:
+   - End-to-end neural networks
+   - Sequence-to-sequence models
+   - Attention mechanisms
+
+## Implementation Approaches
+
+### 1. Transformer-Based Translation
+```python
+from transformers import MarianMTModel, MarianTokenizer
+
+def translate_text(text, src_lang="en", tgt_lang="fr"):
+    model_name = f'Helsinki-NLP/opus-mt-{src_lang}-{tgt_lang}'
+    tokenizer = MarianTokenizer.from_pretrained(model_name)
+    model = MarianMTModel.from_pretrained(model_name)
+    
+    # Tokenize and translate
+    inputs = tokenizer(text, return_tensors="pt", padding=True)
+    translated = model.generate(**inputs)
+    
+    # Decode output
+    result = tokenizer.decode(translated[0], skip_special_tokens=True)
+    return result
+```
+
+### 2. Sequence-to-Sequence Model
+```python
+import torch.nn as nn
+
+class Seq2SeqTranslator(nn.Module):
+    def __init__(self, src_vocab_size, tgt_vocab_size, 
+                 embedding_dim, hidden_dim):
+        super().__init__()
+        # Encoder
+        self.encoder = nn.LSTM(embedding_dim, hidden_dim, 
+                             bidirectional=True)
+        self.encoder_embedding = nn.Embedding(src_vocab_size, 
+                                            embedding_dim)
+        
+        # Decoder
+        self.decoder = nn.LSTM(embedding_dim, hidden_dim)
+        self.decoder_embedding = nn.Embedding(tgt_vocab_size, 
+                                            embedding_dim)
+        self.output_layer = nn.Linear(hidden_dim, tgt_vocab_size)
+        
+    def forward(self, src, tgt):
+        # Encoder
+        src_embedded = self.encoder_embedding(src)
+        encoder_outputs, (hidden, cell) = self.encoder(src_embedded)
+        
+        # Decoder
+        tgt_embedded = self.decoder_embedding(tgt)
+        decoder_outputs, _ = self.decoder(tgt_embedded, 
+                                        (hidden, cell))
+        
+        # Output projection
+        outputs = self.output_layer(decoder_outputs)
+        return outputs
+```
+
+## Advanced Features
+
+### 1. Attention Mechanism
+```python
+class AttentionLayer(nn.Module):
+    def __init__(self, hidden_dim):
+        super().__init__()
+        self.attention = nn.Linear(hidden_dim * 2, hidden_dim)
+        self.combine = nn.Linear(hidden_dim * 2, hidden_dim)
+        
+    def forward(self, decoder_hidden, encoder_outputs):
+        attention_weights = torch.softmax(
+            torch.bmm(encoder_outputs, decoder_hidden.unsqueeze(2)),
+            dim=1
+        )
+        context = torch.bmm(attention_weights.transpose(1, 2),
+                          encoder_outputs)
+        output = self.combine(torch.cat((decoder_hidden, 
+                                       context.squeeze(1)), dim=1))
+        return output, attention_weights
+```
+
+### 2. Beam Search Decoding
+```python
+def beam_search_decode(model, src_sentence, beam_width=5):
+    # Initialize
+    src_tokens = tokenize(src_sentence)
+    initial_output = model.encode(src_tokens)
+    
+    # Beam search
+    hypotheses = [([], 0.0)]  # (tokens, score)
+    for _ in range(max_length):
+        candidates = []
+        for seq, score in hypotheses:
+            if is_complete(seq):
+                candidates.append((seq, score))
+                continue
+                
+            # Get next token probabilities
+            probs = model.decode_step(initial_output, seq)
+            top_k = get_top_k(probs, beam_width)
+            
+            # Add to candidates
+            for token, prob in top_k:
+                candidates.append((seq + [token], 
+                                score + math.log(prob)))
+        
+        # Select top beam_width candidates
+        hypotheses = sorted(candidates, 
+                          key=lambda x: x[1], 
+                          reverse=True)[:beam_width]
+    
+    return hypotheses[0][0]  # Return best sequence
+```
+
+## Best Practices
+
+### 1. Data Preparation
+- Clean parallel corpora
+- Handle rare words
+- Normalize text
+
+### 2. Model Selection
+- Consider language pairs
+- Evaluate resource requirements
+- Balance quality and speed
+
+### 3. Evaluation
+- Use multiple metrics (BLEU, METEOR)
+- Human evaluation
+- Consider domain specifics
+
+## Implementation Example
+
+```python
+class NeuralTranslator:
+    def __init__(self, src_lang, tgt_lang, model_type='transformer'):
+        self.src_lang = src_lang
+        self.tgt_lang = tgt_lang
+        self.model_type = model_type
+        
+        if model_type == 'transformer':
+            self.initialize_transformer()
+        else:
+            self.initialize_seq2seq()
+    
+    def initialize_transformer(self):
+        model_name = f'Helsinki-NLP/opus-mt-{self.src_lang}-{self.tgt_lang}'
+        self.tokenizer = MarianTokenizer.from_pretrained(model_name)
+        self.model = MarianMTModel.from_pretrained(model_name)
+    
+    def translate(self, text, beam_size=4):
+        # Preprocess
+        inputs = self.tokenizer(text, 
+                              return_tensors="pt", 
+                              padding=True)
+        
+        # Translate
+        outputs = self.model.generate(
+            **inputs,
+            num_beams=beam_size,
+            max_length=128,
+            early_stopping=True
+        )
+        
+        # Decode
+        translated = self.tokenizer.decode(outputs[0], 
+                                         skip_special_tokens=True)
+        return translated
+    
+    def batch_translate(self, texts):
+        return [self.translate(text) for text in texts]
+```
+
+## Applications
+
+1. **Cross-lingual Communication**:
+   - Document translation
+   - Website localization
+   - Real-time chat translation
+
+2. **Content Creation**:
+   - Multilingual content generation
+   - Localization
+   - Cross-lingual summarization
+
+3. **Educational Tools**:
+   - Language learning
+   - Educational content translation
+   - Research translation
+
+## Challenges
+
+1. **Language Complexity**:
+   - Idiomatic expressions
+   - Cultural context
+   - Grammar differences
+
+2. **Quality Assurance**:
+   - Consistency
+   - Fluency
+   - Semantic accuracy
+
+3. **Resource Requirements**:
+   - Parallel corpora
+   - Computational resources
+   - Domain expertise
+
+## Summary
+
+Machine Translation has evolved significantly with neural approaches, particularly transformer-based models. While challenges remain in handling nuanced language and ensuring translation quality, modern MT systems achieve impressive results across many language pairs and domains. 
