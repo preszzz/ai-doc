@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   title: "PresDocs",
   metadataBase: new URL("https://preswork.vercel.app/"),
   description:
-    "This comprehensive documentation template, crafted with Next.js and available as open-source, delivers a sleek and responsive design, tailored to meet all your project documentation requirements.",
+    "Dive into comprehensive AI tutorials with interactive code examples, from machine learning fundamentals to advanced deep learning implementations. Built for both beginners and experts.",
 };
 
 export default function RootLayout({
