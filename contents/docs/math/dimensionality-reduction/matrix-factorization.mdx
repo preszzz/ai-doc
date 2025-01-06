@@ -1,0 +1,299 @@
+---
+title: "Matrix Factorization Methods"
+description: "Understanding matrix factorization techniques for dimensionality reduction and latent factor analysis."
+---
+
+Matrix factorization methods decompose a matrix into a product of smaller matrices, revealing latent structure in the data. These techniques are fundamental to dimensionality reduction, collaborative filtering, and feature learning.
+
+## Theoretical Foundation
+
+### Matrix Factorization
+Given a matrix $X \in \mathbb{R}^{m \times n}$, matrix factorization aims to find matrices $W \in \mathbb{R}^{m \times k}$ and $H \in \mathbb{R}^{k \times n}$ such that:
+
+$X \approx WH$
+
+where $k$ is typically much smaller than both $m$ and $n$.
+
+## Principal Component Analysis (PCA)
+
+### Mathematical Foundation
+PCA finds orthogonal directions of maximum variance in the data. It can be formulated as:
+
+$X \approx U\Sigma V^T$
+
+where:
+- $U$ contains left singular vectors (principal components)
+- $\Sigma$ contains singular values (variances)
+- $V$ contains right singular vectors
+
+### Implementation
+```python
+class PCA:
+    def __init__(self, n_components=2):
+        self.n_components = n_components
+        self.components_ = None
+        self.mean_ = None
+        self.explained_variance_ = None
+    
+    def fit_transform(self, X):
+        """Fit PCA and transform data"""
+        # Center the data
+        self.mean_ = np.mean(X, axis=0)
+        X_centered = X - self.mean_
+        
+        # Compute SVD
+        U, S, Vt = np.linalg.svd(X_centered, full_matrices=False)
+        
+        # Store components and explained variance
+        self.components_ = Vt[:self.n_components]
+        self.explained_variance_ = (S ** 2) / (X.shape[0] - 1)
+        
+        # Transform data
+        return U[:, :self.n_components] * S[:self.n_components]
+    
+    def transform(self, X):
+        """Transform new data"""
+        X_centered = X - self.mean_
+        return np.dot(X_centered, self.components_.T)
+    
+    def inverse_transform(self, X_transformed):
+        """Inverse transform to original space"""
+        return np.dot(X_transformed, self.components_) + self.mean_
+```
+
+## Non-negative Matrix Factorization (NMF)
+
+### Mathematical Foundation
+NMF decomposes non-negative data into non-negative factors:
+
+$X \approx WH$ where $X, W, H \geq 0$
+
+### Implementation
+```python
+class NMF:
+    def __init__(self, n_components=2, max_iter=200, tol=1e-4):
+        self.n_components = n_components
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def fit_transform(self, X):
+        """Fit NMF and return W"""
+        # Initialize factors
+        n_samples, n_features = X.shape
+        W = np.random.rand(n_samples, self.n_components)
+        H = np.random.rand(self.n_components, n_features)
+        
+        # Optimize using multiplicative updates
+        for _ in range(self.max_iter):
+            # Update H
+            numerator = np.dot(W.T, X)
+            denominator = np.dot(np.dot(W.T, W), H)
+            H *= numerator / (denominator + 1e-10)
+            
+            # Update W
+            numerator = np.dot(X, H.T)
+            denominator = np.dot(W, np.dot(H, H.T))
+            W *= numerator / (denominator + 1e-10)
+            
+            # Normalize columns of W
+            W /= np.sqrt(np.sum(W**2, axis=0))
+        
+        self.components_ = H
+        return W
+    
+    def transform(self, X):
+        """Transform new data"""
+        W = np.zeros((X.shape[0], self.n_components))
+        for i in range(self.max_iter):
+            numerator = np.dot(X, self.components_.T)
+            denominator = np.dot(W, 
+                               np.dot(self.components_,
+                                    self.components_.T))
+            W *= numerator / (denominator + 1e-10)
+        return W
+```
+
+## Sparse Dictionary Learning
+
+### Mathematical Foundation
+Dictionary learning finds a sparse representation of data:
+
+$\min_{D,\alpha} \frac{1}{2}||X - D\alpha||_F^2 + \lambda||\alpha||_1$
+
+where $D$ is the dictionary and $\alpha$ contains sparse codes.
+
+### Implementation
+```python
+class DictionaryLearning:
+    def __init__(self, n_components=2, alpha=1.0, max_iter=100):
+        self.n_components = n_components
+        self.alpha = alpha
+        self.max_iter = max_iter
+    
+    def fit_transform(self, X):
+        """Fit dictionary and return sparse codes"""
+        # Initialize dictionary
+        n_samples, n_features = X.shape
+        self.components_ = np.random.randn(self.n_components,
+                                         n_features)
+        self.components_ /= np.sqrt(np.sum(
+            self.components_**2, axis=1))[:, np.newaxis]
+        
+        # Alternate between sparse coding and dictionary update
+        for _ in range(self.max_iter):
+            # Sparse coding step
+            codes = self._sparse_encode(X)
+            
+            # Dictionary update step
+            self._update_dictionary(X, codes)
+        
+        return self._sparse_encode(X)
+    
+    def _sparse_encode(self, X):
+        """Compute sparse codes using LARS"""
+        from sklearn.linear_model import LassoLars
+        
+        codes = np.zeros((X.shape[0], self.n_components))
+        for i in range(X.shape[0]):
+            lars = LassoLars(alpha=self.alpha, normalize=False)
+            lars.fit(self.components_.T, X[i])
+            codes[i] = lars.coef_
+        
+        return codes
+    
+    def _update_dictionary(self, X, codes):
+        """Update dictionary using gradient descent"""
+        for j in range(self.n_components):
+            # Compute residual
+            R = X - np.dot(codes, self.components_)
+            R += np.outer(codes[:, j], self.components_[j])
+            
+            # Update component
+            self.components_[j] = np.dot(codes[:, j], R)
+            
+            # Normalize
+            self.components_[j] /= np.sqrt(
+                np.sum(self.components_[j]**2))
+```
+
+## Matrix Completion
+
+### Mathematical Foundation
+Matrix completion recovers missing entries in a matrix:
+
+$\min_X ||P_\Omega(X - M)||_F^2 + \lambda||X||_*$
+
+where $P_\Omega$ is the projection onto observed entries and $||X||_*$ is the nuclear norm.
+
+### Implementation
+```python
+class MatrixCompletion:
+    def __init__(self, rank=2, lambda_=1.0, max_iter=100):
+        self.rank = rank
+        self.lambda_ = lambda_
+        self.max_iter = max_iter
+    
+    def fit_transform(self, X, mask):
+        """Complete matrix with missing entries"""
+        # Initialize factors
+        n_samples, n_features = X.shape
+        U = np.random.randn(n_samples, self.rank)
+        V = np.random.randn(self.rank, n_features)
+        
+        # Alternate minimization
+        for _ in range(self.max_iter):
+            # Update U
+            for i in range(n_samples):
+                idx = mask[i]
+                if len(idx) > 0:
+                    U[i] = np.linalg.solve(
+                        np.dot(V[:, idx], V[:, idx].T) + 
+                        self.lambda_ * np.eye(self.rank),
+                        np.dot(X[i, idx], V[:, idx].T)
+                    )
+            
+            # Update V
+            for j in range(n_features):
+                idx = mask[:, j]
+                if len(idx) > 0:
+                    V[:, j] = np.linalg.solve(
+                        np.dot(U[idx].T, U[idx]) + 
+                        self.lambda_ * np.eye(self.rank),
+                        np.dot(U[idx].T, X[idx, j])
+                    )
+        
+        # Return completed matrix
+        return np.dot(U, V)
+```
+
+## Applications
+
+### 1. Collaborative Filtering
+```python
+def collaborative_filtering(ratings, n_factors=10):
+    """Implement collaborative filtering using matrix factorization"""
+    # Create mask for observed ratings
+    mask = ~np.isnan(ratings)
+    
+    # Initialize matrix completion
+    mc = MatrixCompletion(rank=n_factors)
+    
+    # Complete matrix
+    completed = mc.fit_transform(
+        np.nan_to_num(ratings), mask)
+    
+    return completed
+```
+
+### 2. Feature Learning
+```python
+def learn_features(X, n_components=10):
+    """Learn features using dictionary learning"""
+    # Initialize dictionary learning
+    dl = DictionaryLearning(n_components=n_components)
+    
+    # Learn dictionary and get sparse codes
+    sparse_codes = dl.fit_transform(X)
+    
+    return sparse_codes, dl.components_
+```
+
+## Best Practices
+
+### 1. Method Selection
+- Use PCA for linear dimensionality reduction
+- Choose NMF for non-negative data
+- Apply dictionary learning for sparse features
+- Use matrix completion for missing data
+
+### 2. Parameter Tuning
+- Select number of components
+- Adjust regularization parameters
+- Set convergence criteria
+- Monitor reconstruction error
+
+### 3. Preprocessing
+- Scale features appropriately
+- Handle missing values
+- Remove outliers
+- Center data if needed
+
+## Common Challenges and Solutions
+
+### 1. Scalability
+- Use randomized methods
+- Implement online learning
+- Use stochastic optimization
+- Consider mini-batch updates
+
+### 2. Missing Data
+- Use matrix completion
+- Implement imputation
+- Consider robust methods
+- Handle sparse matrices
+
+### 3. Model Selection
+- Cross-validate parameters
+- Monitor convergence
+- Evaluate reconstruction
+- Consider multiple initializations 

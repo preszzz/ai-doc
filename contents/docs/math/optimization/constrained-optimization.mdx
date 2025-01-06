@@ -1,0 +1,313 @@
+---
+title: "Constrained Optimization"
+description: "Understanding constrained optimization methods and their applications in machine learning."
+---
+
+Constrained optimization deals with finding optimal solutions subject to constraints, which is crucial in many machine learning applications.
+
+## Equality Constraints
+
+### Method of Lagrange Multipliers
+- Lagrangian: $L(x, \lambda) = f(x) + \lambda^T h(x)$
+```python
+class LagrangeMultipliers:
+    def __init__(self, max_iter=1000, tol=1e-6):
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, objective_fn, constraint_fn, initial_params):
+        """Optimize with equality constraints"""
+        x = initial_params.copy()
+        lambda_ = np.ones(len(constraint_fn(x)))
+        
+        for i in range(self.max_iter):
+            # Compute gradients
+            grad_f = self.compute_gradient(objective_fn, x)
+            grad_h = self.compute_jacobian(constraint_fn, x)
+            
+            # Form KKT system
+            KKT_matrix = np.block([
+                [np.eye(len(x)), grad_h.T],
+                [grad_h, np.zeros((len(lambda_), len(lambda_)))]
+            ])
+            
+            KKT_rhs = np.concatenate([
+                -grad_f,
+                -constraint_fn(x)
+            ])
+            
+            # Solve KKT system
+            try:
+                delta = np.linalg.solve(KKT_matrix, KKT_rhs)
+            except np.linalg.LinAlgError:
+                break
+            
+            # Update variables
+            dx = delta[:len(x)]
+            dlambda = delta[len(x):]
+            
+            x = x + dx
+            lambda_ = lambda_ + dlambda
+            
+            # Check convergence
+            if np.linalg.norm(dx) < self.tol and \
+               np.linalg.norm(constraint_fn(x)) < self.tol:
+                break
+        
+        return x, lambda_
+    
+    def compute_gradient(self, f, x, eps=1e-8):
+        """Compute numerical gradient"""
+        n = len(x)
+        grad = np.zeros(n)
+        
+        for i in range(n):
+            ei = np.zeros(n)
+            ei[i] = eps
+            grad[i] = (f(x + ei) - f(x - ei)) / (2 * eps)
+        
+        return grad
+    
+    def compute_jacobian(self, h, x, eps=1e-8):
+        """Compute numerical Jacobian"""
+        n = len(x)
+        m = len(h(x))
+        jac = np.zeros((m, n))
+        
+        for i in range(n):
+            ei = np.zeros(n)
+            ei[i] = eps
+            jac[:, i] = (h(x + ei) - h(x - ei)) / (2 * eps)
+        
+        return jac
+```
+
+## Inequality Constraints
+
+### Barrier Methods
+```python
+class BarrierMethod:
+    def __init__(self, mu=10, max_iter=100, tol=1e-6):
+        self.mu = mu
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, objective_fn, inequality_constraints, initial_params):
+        """Interior point method with barrier functions"""
+        x = initial_params.copy()
+        t = 1.0
+        
+        for i in range(self.max_iter):
+            # Define barrier objective
+            def barrier_objective(x):
+                return t * objective_fn(x) - \
+                       sum(np.log(-g(x)) for g in inequality_constraints)
+            
+            # Optimize barrier objective
+            x = self._newton_step(barrier_objective, x)
+            
+            # Update barrier parameter
+            t *= self.mu
+            
+            # Check convergence
+            if len(inequality_constraints) / t < self.tol:
+                break
+        
+        return x
+    
+    def _newton_step(self, f, x):
+        """Perform Newton step"""
+        grad = self.compute_gradient(f, x)
+        hess = self.compute_hessian(f, x)
+        
+        try:
+            dx = -np.linalg.solve(hess, grad)
+        except np.linalg.LinAlgError:
+            dx = -np.linalg.pinv(hess) @ grad
+        
+        return x + dx
+```
+
+### Active Set Methods
+```python
+class ActiveSetMethod:
+    def __init__(self, max_iter=1000, tol=1e-6):
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, objective_fn, constraints, initial_params):
+        """Active set method for inequality constraints"""
+        x = initial_params.copy()
+        active_set = set()
+        
+        for i in range(self.max_iter):
+            # Solve equality constrained subproblem
+            active_constraints = [constraints[j] for j in active_set]
+            x_new = self._solve_subproblem(
+                objective_fn, active_constraints, x)
+            
+            # Check KKT conditions
+            grad_f = self.compute_gradient(objective_fn, x_new)
+            multipliers = self._compute_multipliers(
+                grad_f, active_constraints, x_new)
+            
+            # Update active set
+            if all(lam >= 0 for lam in multipliers):
+                # Find most violated inactive constraint
+                max_violation = -float('inf')
+                max_idx = None
+                
+                for j, g in enumerate(constraints):
+                    if j not in active_set:
+                        violation = g(x_new)
+                        if violation > max_violation:
+                            max_violation = violation
+                            max_idx = j
+                
+                if max_violation <= self.tol:
+                    break
+                else:
+                    active_set.add(max_idx)
+            else:
+                # Remove constraint with most negative multiplier
+                min_idx = min(enumerate(multipliers), 
+                            key=lambda x: x[1])[0]
+                active_set.remove(list(active_set)[min_idx])
+            
+            x = x_new
+        
+        return x
+```
+
+## Sequential Quadratic Programming
+
+### Basic SQP
+```python
+class SequentialQuadraticProgramming:
+    def __init__(self, max_iter=100, tol=1e-6):
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, objective_fn, constraints, initial_params):
+        """Sequential Quadratic Programming"""
+        x = initial_params.copy()
+        lambda_ = np.ones(len(constraints))
+        
+        for i in range(self.max_iter):
+            # Compute gradients and Hessian
+            grad_f = self.compute_gradient(objective_fn, x)
+            hess_f = self.compute_hessian(objective_fn, x)
+            grad_c = np.array([
+                self.compute_gradient(c, x) for c in constraints
+            ])
+            
+            # Form and solve QP subproblem
+            P = hess_f
+            q = grad_f
+            A = grad_c
+            b = -np.array([c(x) for c in constraints])
+            
+            try:
+                dx = self._solve_qp(P, q, A, b)
+            except:
+                break
+            
+            # Update variables
+            x = x + dx
+            
+            # Check convergence
+            if np.linalg.norm(dx) < self.tol and \
+               np.max(np.abs(b)) < self.tol:
+                break
+        
+        return x
+    
+    def _solve_qp(self, P, q, A, b):
+        """Solve quadratic programming subproblem"""
+        n = len(q)
+        m = len(b)
+        
+        # Form KKT system
+        KKT_matrix = np.block([
+            [P, A.T],
+            [A, np.zeros((m, m))]
+        ])
+        
+        KKT_rhs = np.concatenate([-q, b])
+        
+        # Solve KKT system
+        solution = np.linalg.solve(KKT_matrix, KKT_rhs)
+        return solution[:n]
+```
+
+## Applications in Machine Learning
+
+### Support Vector Machines
+```python
+class SVMOptimizer:
+    def __init__(self, C=1.0):
+        self.C = C
+    
+    def optimize(self, X, y):
+        """Optimize SVM dual problem"""
+        n_samples = len(y)
+        
+        # Form quadratic program
+        K = X @ X.T
+        P = np.outer(y, y) * K
+        q = -np.ones(n_samples)
+        
+        # Constraints
+        A = np.vstack([y, -y])
+        b = np.zeros(2)
+        G = np.vstack([np.eye(n_samples), -np.eye(n_samples)])
+        h = np.hstack([self.C * np.ones(n_samples), np.zeros(n_samples)])
+        
+        # Solve QP
+        qp = QuadraticProgram(P, q, G, h, A, b)
+        alphas = qp.solve()
+        
+        # Extract support vectors
+        sv = alphas > 1e-5
+        support_vectors = X[sv]
+        support_vector_labels = y[sv]
+        support_vector_alphas = alphas[sv]
+        
+        return support_vectors, support_vector_labels, support_vector_alphas
+```
+
+### Constrained Neural Networks
+```python
+class ConstrainedNeuralNetwork:
+    def __init__(self, model, constraints):
+        self.model = model
+        self.constraints = constraints
+    
+    def project_parameters(self, params):
+        """Project parameters onto constraint set"""
+        def objective(x):
+            return 0.5 * np.sum((x - params)**2)
+        
+        # Solve projection problem
+        optimizer = SequentialQuadraticProgramming()
+        projected_params = optimizer.optimize(
+            objective, self.constraints, params)
+        
+        return projected_params
+    
+    def train_step(self, X, y):
+        """Perform constrained training step"""
+        # Forward pass
+        outputs = self.model(X)
+        loss = self.model.loss(outputs, y)
+        
+        # Backward pass
+        grads = self.model.backward(loss)
+        
+        # Update with projection
+        params = self.model.get_parameters()
+        updated_params = params - self.learning_rate * grads
+        projected_params = self.project_parameters(updated_params)
+        
+        self.model.set_parameters(projected_params)
+``` 

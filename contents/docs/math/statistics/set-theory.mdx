@@ -1,0 +1,297 @@
+---
+title: "Set Theory"
+description: "Understanding set theory fundamentals and their applications in probability and statistics."
+---
+
+Set theory provides the mathematical foundation for probability theory and forms the basis for understanding random events and their relationships.
+
+## Fundamental Concepts
+
+### Basic Definitions
+- Set: Collection of distinct objects, $A = \{a_1, a_2, ..., a_n\}$
+- Empty set: $\emptyset$ or $\{\}$
+- Universal set: $\Omega$ or $U$
+- Subset: $A \subseteq B$ if every element of $A$ is in $B$
+- Power set: $\mathcal{P}(A)$ = set of all subsets of $A$
+
+```python
+class Set:
+    def __init__(self, elements=None):
+        self.elements = set(elements) if elements is not None else set()
+    
+    def is_subset(self, other):
+        return self.elements.issubset(other.elements)
+    
+    def power_set(self):
+        elements = list(self.elements)
+        n = len(elements)
+        power_set = []
+        for i in range(2**n):
+            subset = {elements[j] for j in range(n) if (i & (1 << j))}
+            power_set.append(subset)
+        return power_set
+```
+
+### Set Operations
+1. **Basic Operations**
+   ```python
+   class SetOperations:
+       @staticmethod
+       def union(A, B):
+           """A ∪ B"""
+           return Set(A.elements.union(B.elements))
+       
+       @staticmethod
+       def intersection(A, B):
+           """A ∩ B"""
+           return Set(A.elements.intersection(B.elements))
+       
+       @staticmethod
+       def difference(A, B):
+           """A - B"""
+           return Set(A.elements.difference(B.elements))
+       
+       @staticmethod
+       def symmetric_difference(A, B):
+           """(A - B) ∪ (B - A)"""
+           return Set(A.elements.symmetric_difference(B.elements))
+   ```
+
+2. **Complement**
+   ```python
+   def complement(A, universal_set):
+       """Ā = U - A"""
+       return Set(universal_set.elements - A.elements)
+   ```
+
+## Set Properties
+
+### Basic Properties
+1. **Commutative Laws**
+   - $A \cup B = B \cup A$
+   - $A \cap B = B \cap A$
+
+2. **Associative Laws**
+   - $(A \cup B) \cup C = A \cup (B \cup C)$
+   - $(A \cap B) \cap C = A \cap (B \cap C)$
+
+3. **Distributive Laws**
+   - $A \cap (B \cup C) = (A \cap B) \cup (A \cap C)$
+   - $A \cup (B \cap C) = (A \cup B) \cap (A \cup C)$
+
+```python
+def verify_set_properties(A, B, C):
+    """Verify basic set properties"""
+    ops = SetOperations()
+    
+    # Commutative laws
+    comm_union = ops.union(A, B).elements == ops.union(B, A).elements
+    comm_inter = ops.intersection(A, B).elements == ops.intersection(B, A).elements
+    
+    # Associative laws
+    assoc_union = ops.union(ops.union(A, B), C).elements == \
+                  ops.union(A, ops.union(B, C)).elements
+    assoc_inter = ops.intersection(ops.intersection(A, B), C).elements == \
+                  ops.intersection(A, ops.intersection(B, C)).elements
+    
+    return {
+        'commutative_union': comm_union,
+        'commutative_intersection': comm_inter,
+        'associative_union': assoc_union,
+        'associative_intersection': assoc_inter
+    }
+```
+
+### Special Sets
+```python
+class SpecialSets:
+    @staticmethod
+    def create_interval(a, b, closed=True):
+        """Create interval [a,b] or (a,b)"""
+        if closed:
+            return Set(np.arange(a, b + 1))
+        return Set(np.arange(a + 1, b))
+    
+    @staticmethod
+    def create_partition(universal_set, n_parts):
+        """Create a partition of the universal set"""
+        elements = list(universal_set.elements)
+        np.random.shuffle(elements)
+        partition_size = len(elements) // n_parts
+        partitions = []
+        for i in range(0, len(elements), partition_size):
+            partition = Set(elements[i:i + partition_size])
+            partitions.append(partition)
+        return partitions
+```
+
+## Set Relations
+
+### Types of Relations
+```python
+class SetRelation:
+    def __init__(self, domain, codomain, pairs):
+        self.domain = domain
+        self.codomain = codomain
+        self.pairs = set(pairs)
+    
+    def is_function(self):
+        """Check if relation is a function"""
+        domain_elements = set(x for x, _ in self.pairs)
+        return len(domain_elements) == len(self.domain.elements)
+    
+    def is_injective(self):
+        """Check if relation is one-to-one"""
+        codomain_elements = set(y for _, y in self.pairs)
+        return len(codomain_elements) == len(self.pairs)
+    
+    def is_surjective(self):
+        """Check if relation is onto"""
+        codomain_elements = set(y for _, y in self.pairs)
+        return codomain_elements == self.codomain.elements
+```
+
+### Properties of Relations
+```python
+def analyze_relation_properties(relation):
+    """Analyze properties of a relation"""
+    pairs = relation.pairs
+    domain = relation.domain.elements
+    
+    # Reflexivity
+    reflexive = all((x, x) in pairs for x in domain)
+    
+    # Symmetry
+    symmetric = all((y, x) in pairs for (x, y) in pairs)
+    
+    # Transitivity
+    transitive = all(
+        (x, z) in pairs
+        for (x, y1) in pairs
+        for (y2, z) in pairs
+        if y1 == y2
+    )
+    
+    return {
+        'reflexive': reflexive,
+        'symmetric': symmetric,
+        'transitive': transitive,
+        'equivalence': reflexive and symmetric and transitive
+    }
+```
+
+## Applications in Probability
+
+### Event Spaces
+```python
+class ProbabilitySpace:
+    def __init__(self, sample_space):
+        self.sample_space = sample_space
+        self.events = self.sample_space.power_set()
+    
+    def probability(self, event, probability_measure):
+        """Compute probability of an event"""
+        return sum(probability_measure[outcome] 
+                  for outcome in event 
+                  if outcome in probability_measure)
+    
+    def conditional_probability(self, event_A, event_B, probability_measure):
+        """Compute P(A|B)"""
+        intersection = event_A.intersection(event_B)
+        return self.probability(intersection, probability_measure) / \
+               self.probability(event_B, probability_measure)
+```
+
+### Independence
+```python
+def check_independence(events, probability_measure):
+    """Check independence of events"""
+    for A, B in itertools.combinations(events, 2):
+        p_a = probability_measure(A)
+        p_b = probability_measure(B)
+        p_ab = probability_measure(A.intersection(B))
+        
+        if not np.isclose(p_ab, p_a * p_b):
+            return False
+    return True
+```
+
+## Applications in Machine Learning
+
+### Feature Spaces
+```python
+class FeatureSpace:
+    def __init__(self, features):
+        self.features = features
+        self.dimensions = len(features)
+    
+    def feature_selection(self, k):
+        """Select k best features"""
+        return Set(sorted(self.features, 
+                        key=lambda f: f.importance)[-k:])
+    
+    def feature_interaction(self, degree=2):
+        """Generate feature interactions"""
+        interactions = []
+        for d in range(2, degree + 1):
+            for combo in itertools.combinations(self.features, d):
+                interactions.append(Set(combo))
+        return interactions
+```
+
+### Model Theory
+```python
+class ModelSpace:
+    def __init__(self, parameters):
+        self.parameters = parameters
+        self.parameter_space = Set(parameters)
+    
+    def decision_boundary(self, classifier):
+        """Compute decision boundary points"""
+        def is_boundary_point(x):
+            neighbors = self.get_neighbors(x)
+            predictions = [classifier.predict(n) for n in neighbors]
+            return len(set(predictions)) > 1
+        
+        boundary_points = Set([x for x in self.parameter_space.elements 
+                             if is_boundary_point(x)])
+        return boundary_points
+```
+
+## Advanced Topics
+
+### Measure Theory
+```python
+class MeasureSpace:
+    def __init__(self, sigma_algebra):
+        self.sigma_algebra = sigma_algebra
+    
+    def lebesgue_measure(self, set_):
+        """Compute Lebesgue measure"""
+        if isinstance(set_, Set):
+            return len(set_.elements)
+        return sum(self.lebesgue_measure(subset) 
+                  for subset in set_)
+```
+
+### Topology
+```python
+class TopologicalSpace:
+    def __init__(self, base_sets):
+        self.base_sets = base_sets
+        self.topology = self.generate_topology()
+    
+    def generate_topology(self):
+        """Generate topology from base"""
+        topology = set()
+        for k in range(len(self.base_sets) + 1):
+            for combo in itertools.combinations(self.base_sets, k):
+                union = Set().union(*combo)
+                topology.add(union)
+        return topology
+    
+    def is_continuous(self, f, domain, codomain):
+        """Check if function is continuous"""
+        return all(f(Set(x)) in self.topology 
+                  for x in domain.elements)
+``` 

@@ -40,20 +40,58 @@ const ROUTES: EachRoute[] = [
         href: "/math",
         noLink: true,
         items: [
-            { title: "01 Linear Algebra", href: "/linear-algebra" },
-            { title: "02 Calculus", href: "/calculus" },
+            { 
+                title: "01 Linear Algebra", 
+                href: "/linear-algebra",
+                items: [
+                    { title: "Matrix Operations", href: "/matrix-operations" },
+                    { title: "Special Matrices", href: "/special-matrices" },
+                    { title: "Eigenvalues & Eigenvectors", href: "/eigenvalues-eigenvectors" },
+                    { title: "Applications in AI", href: "/applications-in-ai" }
+                ]
+            },
+            { 
+                title: "02 Calculus", 
+                href: "/calculus",
+                items: [
+                    { title: "Differentiation", href: "/differentiation" },
+                    { title: "Integration", href: "/integration" },
+                    { title: "Optimization", href: "/optimization" }
+                ]
+            },
             {
                 title: "03 Statistics",
                 href: "/statistics",
                 items: [
-                    { title: "Stepper", href: "/stepper" },
-                    { title: "Tabs", href: "/tabs" },
-                    { title: "Note", href: "/note" },
-                    { title: "Code Block", href: "/code-block" },
-                    { title: "Image & Link", href: "/image-link" },
-                    { title: "Custom", href: "/custom" },
-                ],
+                    { title: "Set Theory", href: "/set-theory" },
+                    { title: "Random Variables", href: "/random-variables" },
+                    { title: "Inferential Statistics", href: "/inferential-statistics" },
+                    { title: "Distributions", href: "/distributions" },
+                    { title: "Combinatorics", href: "/combinatorics" }
+                ]
             },
+            {
+                title: "04 Dimensionality Reduction",
+                href: "/dimensionality-reduction",
+                items: [
+                    { title: "Applications", href: "/applications" },
+                    { title: "Tensor Decomposition", href: "/tensor-decomposition" },
+                    { title: "Spectral Methods", href: "/spectral-methods" },
+                    { title: "PCA", href: "/pca" },
+                    { title: "Matrix Factorization", href: "/matrix-factorization" },
+                    { title: "Manifold Learning", href: "/manifold-learning" },
+                    { title: "Kernel Methods", href: "/kernel-methods" }
+                ]
+            },
+            {
+                title: "05 Optimization",
+                href: "/optimization",
+                items: [
+                    { title: "Gradient Descent", href: "/gradient-descent" },
+                    { title: "Constrained Optimization", href: "/constrained-optimization" },
+                    { title: "Algorithms in AI", href: "/algorithms-in-ai" }
+                ]
+            }
         ],
     },
     {
@@ -130,10 +168,13 @@ const ROUTES: EachRoute[] = [
                 title: "Model Evaluation",
                 href: "/model-evaluation",
                 items: [
+                    { title: "Introduction", href: "/introduction" },
                     { title: "Performance Metrics", href: "/performance-metrics" },
-                    { title: "Cross-validation", href: "/cross-validation" },
+                    { title: "Classification Metrics", href: "/classification-metrics" },
+                    { title: "Regression Metrics", href: "/regression-metrics" },
+                    { title: "Cross Validation", href: "/cross-validation" },
                     { title: "Model Selection", href: "/model-selection" },
-                    { title: "Bias-Variance Tradeoff", href: "/bias-variance-tradeoff" }
+                    { title: "Bias-Variance Analysis", href: "/bias-variance-analysis" }
                 ]
             },
             {

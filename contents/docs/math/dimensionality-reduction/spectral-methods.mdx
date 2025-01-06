@@ -1,0 +1,247 @@
+---
+title: "Spectral Methods"
+description: "Understanding spectral methods for dimensionality reduction and data analysis."
+---
+
+Spectral methods leverage the eigenvalue decomposition of matrices derived from the data to reveal underlying structure and reduce dimensionality. These techniques are particularly powerful for nonlinear dimensionality reduction and clustering.
+
+## Theoretical Foundation
+
+### Spectral Graph Theory
+Spectral methods are rooted in spectral graph theory, which studies the properties of graphs through the eigenvalues and eigenvectors of their associated matrices:
+
+1. **Adjacency Matrix**: $A_{ij} = 1$ if vertices i and j are connected, 0 otherwise
+2. **Degree Matrix**: $D_{ii} = \sum_j A_{ij}$, diagonal matrix of vertex degrees
+3. **Laplacian Matrix**: $L = D - A$, represents the discrete analog of the Laplace operator
+
+### Graph Laplacians
+
+#### Types of Laplacians
+1. **Unnormalized Laplacian**: $L = D - A$
+2. **Normalized Laplacian**: $L_{sym} = I - D^{-1/2}AD^{-1/2}$
+3. **Random Walk Laplacian**: $L_{rw} = I - D^{-1}A$
+
+#### Properties
+- Symmetric and positive semidefinite
+- Smallest eigenvalue is 0
+- Number of connected components equals number of zero eigenvalues
+- Eigenvectors provide optimal graph cuts
+
+## Spectral Clustering
+
+### Algorithm Implementation
+```python
+class SpectralClustering:
+    def __init__(self, n_clusters=2, n_neighbors=10):
+        self.n_clusters = n_clusters
+        self.n_neighbors = n_neighbors
+    
+    def fit_predict(self, X):
+        """Perform spectral clustering"""
+        # Construct similarity matrix
+        W = self._construct_similarity(X)
+        
+        # Compute Laplacian
+        L = self._compute_laplacian(W)
+        
+        # Find eigenvectors
+        eigvals, eigvecs = self._find_eigenvectors(L)
+        
+        # Cluster embedded points
+        labels = self._cluster_embedded(eigvecs)
+        
+        return labels
+    
+    def _construct_similarity(self, X):
+        """Construct similarity matrix using k-nearest neighbors"""
+        from sklearn.neighbors import kneighbors_graph
+        
+        # Construct k-nearest neighbors graph
+        connectivity = kneighbors_graph(
+            X, n_neighbors=self.n_neighbors,
+            mode='distance', include_self=True
+        )
+        
+        # Convert distances to similarities
+        W = 0.5 * (connectivity + connectivity.T)
+        W.data = np.exp(-W.data ** 2 / 2)
+        
+        return W
+    
+    def _compute_laplacian(self, W):
+        """Compute normalized Laplacian"""
+        from scipy.sparse import diags
+        
+        # Compute degree matrix
+        d = np.array(W.sum(axis=1)).flatten()
+        D = diags(d)
+        
+        # Compute normalized Laplacian
+        D_inv_sqrt = diags(1.0 / np.sqrt(d))
+        L = np.eye(W.shape[0]) - D_inv_sqrt @ W @ D_inv_sqrt
+        
+        return L
+    
+    def _find_eigenvectors(self, L):
+        """Find smallest eigenvectors of Laplacian"""
+        from scipy.sparse.linalg import eigsh
+        
+        # Find eigenvalues and eigenvectors
+        eigvals, eigvecs = eigsh(L, k=self.n_clusters,
+                               which='SM')
+        
+        return eigvals, eigvecs
+    
+    def _cluster_embedded(self, eigvecs):
+        """Cluster points in spectral embedding"""
+        from sklearn.cluster import KMeans
+        
+        # Normalize rows of eigenvectors
+        X_embedded = eigvecs / np.sqrt(
+            np.sum(eigvecs ** 2, axis=1))[:, np.newaxis]
+        
+        # Apply k-means clustering
+        kmeans = KMeans(n_clusters=self.n_clusters)
+        labels = kmeans.fit_predict(X_embedded)
+        
+        return labels
+```
+
+## Spectral Dimensionality Reduction
+
+### Laplacian Eigenmaps Implementation
+```python
+class LaplacianEigenmaps:
+    def __init__(self, n_components=2, n_neighbors=5):
+        self.n_components = n_components
+        self.n_neighbors = n_neighbors
+    
+    def fit_transform(self, X):
+        """Perform Laplacian Eigenmaps embedding"""
+        # Construct similarity matrix
+        W = self._construct_similarity(X)
+        
+        # Compute Laplacian
+        L, D = self._compute_laplacian(W)
+        
+        # Solve generalized eigenvalue problem
+        Y = self._solve_eigenproblem(L, D)
+        
+        return Y
+    
+    def _construct_similarity(self, X):
+        """Construct similarity matrix using k-nearest neighbors"""
+        from sklearn.neighbors import kneighbors_graph
+        
+        # Construct k-nearest neighbors graph
+        connectivity = kneighbors_graph(
+            X, n_neighbors=self.n_neighbors,
+            mode='distance', include_self=True
+        )
+        
+        # Convert distances to similarities
+        W = 0.5 * (connectivity + connectivity.T)
+        W.data = np.exp(-W.data ** 2 / 2)
+        
+        return W
+    
+    def _compute_laplacian(self, W):
+        """Compute Laplacian and degree matrices"""
+        from scipy.sparse import diags
+        
+        # Compute degree matrix
+        d = np.array(W.sum(axis=1)).flatten()
+        D = diags(d)
+        
+        # Compute Laplacian
+        L = D - W
+        
+        return L, D
+    
+    def _solve_eigenproblem(self, L, D):
+        """Solve generalized eigenvalue problem"""
+        from scipy.sparse.linalg import eigsh
+        
+        # Solve Ly = λDy
+        eigvals, eigvecs = eigsh(L, k=self.n_components+1,
+                               M=D, which='SM')
+        
+        # Return embedding vectors (excluding constant eigenvector)
+        return eigvecs[:, 1:self.n_components+1]
+```
+
+## Applications
+
+### 1. Image Segmentation
+```python
+def segment_image(image, n_segments=5):
+    """Segment image using spectral clustering"""
+    # Reshape image to feature matrix
+    h, w, c = image.shape
+    X = image.reshape(-1, c)
+    
+    # Apply spectral clustering
+    clustering = SpectralClustering(n_clusters=n_segments)
+    labels = clustering.fit_predict(X)
+    
+    # Reshape labels to image size
+    segmentation = labels.reshape(h, w)
+    
+    return segmentation
+```
+
+### 2. Community Detection
+```python
+def detect_communities(adjacency_matrix, n_communities=2):
+    """Detect communities using spectral clustering"""
+    # Create spectral clustering instance
+    clustering = SpectralClustering(n_clusters=n_communities)
+    
+    # Convert adjacency matrix to similarity matrix
+    W = 0.5 * (adjacency_matrix + adjacency_matrix.T)
+    
+    # Apply spectral clustering
+    communities = clustering.fit_predict(W)
+    
+    return communities
+```
+
+## Best Practices
+
+### 1. Similarity Graph Construction
+- Choose appropriate similarity measure
+- Consider sparsity and connectivity
+- Use adaptive neighborhood sizes
+- Handle outliers appropriately
+
+### 2. Eigenvalue Computation
+- Use sparse eigensolvers when possible
+- Consider numerical stability
+- Monitor convergence
+- Handle degenerate cases
+
+### 3. Parameter Selection
+- Choose number of components based on eigenvalue spectrum
+- Adjust neighborhood size based on data density
+- Consider multiple similarity measures
+- Cross-validate results
+
+## Common Challenges and Solutions
+
+### 1. Scalability
+- Use sparse matrices
+- Implement approximate methods
+- Consider Nyström approximation
+- Use randomized algorithms
+
+### 2. Numerical Stability
+- Normalize similarity matrices
+- Use stable eigensolvers
+- Handle singular matrices
+- Monitor condition numbers
+
+### 3. Parameter Sensitivity
+- Perform parameter search
+- Use adaptive methods
+- Validate results
+- Consider ensemble approaches 
