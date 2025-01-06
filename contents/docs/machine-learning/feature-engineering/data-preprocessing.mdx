@@ -1,0 +1,315 @@
+---
+title: 'Data Preprocessing'
+description: 'Essential techniques for preparing data for machine learning models'
+icon: 'wrench'
+draft: false
+---
+
+Data preprocessing is a crucial step that transforms raw data into a clean and suitable format for machine learning models.
+
+## Data Cleaning
+
+### Handling Duplicates
+
+```python
+def remove_duplicates(df, subset=None):
+    """
+    Remove duplicate rows from dataframe
+    """
+    n_before = len(df)
+    df = df.drop_duplicates(subset=subset)
+    n_after = len(df)
+    
+    print(f"Removed {n_before - n_after} duplicate rows")
+    return df
+```
+
+### Outlier Detection
+
+#### Statistical Methods
+
+1. **Z-Score Method**
+```python
+def detect_outliers_zscore(data, threshold=3):
+    z_scores = np.abs((data - data.mean()) / data.std())
+    return z_scores > threshold
+```
+
+2. **IQR Method**
+```python
+def detect_outliers_iqr(data):
+    Q1 = data.quantile(0.25)
+    Q3 = data.quantile(0.75)
+    IQR = Q3 - Q1
+    
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    
+    return (data < lower_bound) | (data > upper_bound)
+```
+
+#### Machine Learning Methods
+
+1. **Isolation Forest**
+```python
+from sklearn.ensemble import IsolationForest
+
+def detect_outliers_iforest(X):
+    iso_forest = IsolationForest(contamination=0.1)
+    yhat = iso_forest.fit_predict(X)
+    return yhat == -1  # True for outliers
+```
+
+2. **Local Outlier Factor**
+```python
+from sklearn.neighbors import LocalOutlierFactor
+
+def detect_outliers_lof(X):
+    lof = LocalOutlierFactor()
+    yhat = lof.fit_predict(X)
+    return yhat == -1
+```
+
+## Data Transformation
+
+### Numerical Transformations
+
+1. **Log Transform**
+```python
+def log_transform(data, epsilon=1e-10):
+    """
+    Apply log transformation with handling of zeros/negative values
+    """
+    return np.log(data + epsilon)
+```
+
+2. **Box-Cox Transform**
+```python
+from scipy.stats import boxcox
+
+def box_cox_transform(data):
+    """
+    Apply Box-Cox transformation
+    """
+    transformed_data, lambda_param = boxcox(data + 1)
+    return transformed_data, lambda_param
+```
+
+### Categorical Transformations
+
+1. **Frequency Encoding**
+```python
+def frequency_encode(data, column):
+    """
+    Replace categories with their frequencies
+    """
+    frequency = data[column].value_counts(normalize=True)
+    return data[column].map(frequency)
+```
+
+2. **Mean Encoding with Regularization**
+```python
+def mean_encode_regularized(train, test, column, target, alpha=10):
+    """
+    Mean encoding with smoothing
+    """
+    global_mean = train[target].mean()
+    agg = train.groupby(column)[target].agg(['count', 'mean'])
+    
+    # Apply smoothing
+    counts = agg['count']
+    means = agg['mean']
+    smooth = (counts * means + alpha * global_mean) / (counts + alpha)
+    
+    # Map values
+    train_encoded = train[column].map(smooth)
+    test_encoded = test[column].map(smooth)
+    
+    return train_encoded, test_encoded
+```
+
+## Feature Scaling
+
+### Advanced Scaling Techniques
+
+1. **Robust Scaling**
+```python
+from sklearn.preprocessing import RobustScaler
+
+def robust_scale(X_train, X_test):
+    """
+    Scale features using statistics that are robust to outliers
+    """
+    scaler = RobustScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    return X_train_scaled, X_test_scaled
+```
+
+2. **Quantile Transformation**
+```python
+from sklearn.preprocessing import QuantileTransformer
+
+def quantile_transform(X_train, X_test, n_quantiles=1000):
+    """
+    Transform features to follow a normal distribution
+    """
+    transformer = QuantileTransformer(
+        n_quantiles=n_quantiles,
+        output_distribution='normal'
+    )
+    X_train_transformed = transformer.fit_transform(X_train)
+    X_test_transformed = transformer.transform(X_test)
+    return X_train_transformed, X_test_transformed
+```
+
+## Feature Creation
+
+### Polynomial Features
+```python
+from sklearn.preprocessing import PolynomialFeatures
+
+def create_polynomial_features(X, degree=2):
+    """
+    Create polynomial and interaction features
+    """
+    poly = PolynomialFeatures(degree=degree)
+    return poly.fit_transform(X)
+```
+
+### Time-based Features
+```python
+def create_datetime_features(df, date_column):
+    """
+    Extract useful features from datetime column
+    """
+    df = df.copy()
+    df['hour'] = df[date_column].dt.hour
+    df['day'] = df[date_column].dt.day
+    df['month'] = df[date_column].dt.month
+    df['year'] = df[date_column].dt.year
+    df['day_of_week'] = df[date_column].dt.dayofweek
+    df['is_weekend'] = df['day_of_week'].isin([5, 6]).astype(int)
+    
+    return df
+```
+
+## Data Validation
+
+### Schema Validation
+```python
+from dataclasses import dataclass
+from typing import List, Dict
+
+@dataclass
+class DataSchema:
+    numerical_features: List[str]
+    categorical_features: List[str]
+    datetime_features: List[str]
+    target: str
+    
+def validate_schema(df: pd.DataFrame, schema: DataSchema) -> bool:
+    """
+    Validate dataframe against schema
+    """
+    # Check all features exist
+    all_features = (
+        schema.numerical_features + 
+        schema.categorical_features + 
+        schema.datetime_features
+    )
+    
+    if not all(feat in df.columns for feat in all_features):
+        return False
+    
+    # Check data types
+    for feat in schema.numerical_features:
+        if not np.issubdtype(df[feat].dtype, np.number):
+            return False
+            
+    return True
+```
+
+### Data Quality Checks
+```python
+def check_data_quality(df: pd.DataFrame) -> Dict:
+    """
+    Perform various data quality checks
+    """
+    checks = {
+        'missing_values': df.isnull().sum().to_dict(),
+        'unique_counts': df.nunique().to_dict(),
+        'negative_values': {
+            col: (df[col] < 0).sum()
+            for col in df.select_dtypes(include=[np.number]).columns
+        },
+        'zero_values': {
+            col: (df[col] == 0).sum()
+            for col in df.select_dtypes(include=[np.number]).columns
+        }
+    }
+    return checks
+```
+
+## Pipeline Creation
+
+### Custom Transformers
+```python
+from sklearn.base import BaseEstimator, TransformerMixin
+
+class CustomPreprocessor(BaseEstimator, TransformerMixin):
+    def __init__(self, numerical_features, categorical_features):
+        self.numerical_features = numerical_features
+        self.categorical_features = categorical_features
+        
+    def fit(self, X, y=None):
+        return self
+        
+    def transform(self, X):
+        X = X.copy()
+        
+        # Transform numerical features
+        for feature in self.numerical_features:
+            X[feature] = self._transform_numerical(X[feature])
+            
+        # Transform categorical features
+        for feature in self.categorical_features:
+            X[feature] = self._transform_categorical(X[feature])
+            
+        return X
+        
+    def _transform_numerical(self, series):
+        # Add your numerical transformations
+        return series
+        
+    def _transform_categorical(self, series):
+        # Add your categorical transformations
+        return series
+```
+
+### Complete Pipeline
+```python
+def create_preprocessing_pipeline(numerical_features, 
+                                categorical_features):
+    """
+    Create a complete preprocessing pipeline
+    """
+    numerical_transformer = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')),
+        ('scaler', RobustScaler())
+    ])
+
+    categorical_transformer = Pipeline([
+        ('imputer', SimpleImputer(strategy='constant', 
+                                 fill_value='missing')),
+        ('encoder', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ])
+
+    return preprocessor
+``` 

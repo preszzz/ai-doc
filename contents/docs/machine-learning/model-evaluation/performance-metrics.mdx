@@ -1,0 +1,340 @@
+---
+title: 'Performance Metrics'
+description: 'Comprehensive guide to evaluating machine learning models using various metrics'
+icon: 'analytics'
+draft: false
+---
+
+# Performance Metrics
+
+Comprehensive guide to evaluating machine learning models using various metrics.
+
+## Classification Metrics
+
+### Basic Metrics
+
+```python
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score
+)
+
+def calculate_basic_metrics(y_true, y_pred):
+    metrics = {
+        'accuracy': accuracy_score(y_true, y_pred),
+        'precision': precision_score(y_true, y_pred, average='weighted'),
+        'recall': recall_score(y_true, y_pred, average='weighted'),
+        'f1': f1_score(y_true, y_pred, average='weighted')
+    }
+    return metrics
+```
+
+### Confusion Matrix
+
+```python
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+
+def plot_confusion_matrix(y_true, y_pred, labels=None):
+    # Calculate confusion matrix
+    cm = confusion_matrix(y_true, y_pred)
+    
+    # Plot
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt='d',
+        cmap='Blues',
+        xticklabels=labels,
+        yticklabels=labels
+    )
+    plt.title('Confusion Matrix')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    return plt
+```
+
+### ROC and AUC
+
+```python
+from sklearn.metrics import roc_curve, auc
+
+def plot_roc_curves(y_true, y_prob, n_classes):
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    
+    # Calculate ROC curve and ROC area for each class
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(
+            y_true == i,
+            y_prob[:, i]
+        )
+        roc_auc[i] = auc(fpr[i], tpr[i])
+    
+    # Plot
+    plt.figure(figsize=(10, 8))
+    for i in range(n_classes):
+        plt.plot(
+            fpr[i], tpr[i],
+            label=f'Class {i} (AUC = {roc_auc[i]:.2f})'
+        )
+    
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curves')
+    plt.legend()
+    return plt
+```
+
+### Precision-Recall Curve
+
+```python
+from sklearn.metrics import precision_recall_curve, average_precision_score
+
+def plot_precision_recall_curve(y_true, y_prob):
+    precision, recall, _ = precision_recall_curve(y_true, y_prob)
+    ap = average_precision_score(y_true, y_prob)
+    
+    plt.figure(figsize=(10, 8))
+    plt.plot(recall, precision, label=f'AP = {ap:.2f}')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend()
+    return plt
+```
+
+## Regression Metrics
+
+### Basic Metrics
+
+```python
+from sklearn.metrics import (
+    mean_squared_error,
+    mean_absolute_error,
+    r2_score
+)
+
+def calculate_regression_metrics(y_true, y_pred):
+    metrics = {
+        'mse': mean_squared_error(y_true, y_pred),
+        'rmse': np.sqrt(mean_squared_error(y_true, y_pred)),
+        'mae': mean_absolute_error(y_true, y_pred),
+        'r2': r2_score(y_true, y_pred)
+    }
+    return metrics
+```
+
+### Residual Analysis
+
+```python
+def plot_residuals(y_true, y_pred):
+    residuals = y_true - y_pred
+    
+    # Create subplot
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    
+    # Residuals vs Predicted
+    ax1.scatter(y_pred, residuals)
+    ax1.axhline(y=0, color='r', linestyle='--')
+    ax1.set_xlabel('Predicted Values')
+    ax1.set_ylabel('Residuals')
+    ax1.set_title('Residuals vs Predicted')
+    
+    # Residual Distribution
+    ax2.hist(residuals, bins=30)
+    ax2.set_xlabel('Residual Value')
+    ax2.set_ylabel('Frequency')
+    ax2.set_title('Residual Distribution')
+    
+    return fig
+```
+
+## Clustering Metrics
+
+### Internal Metrics
+
+```python
+from sklearn.metrics import (
+    silhouette_score,
+    calinski_harabasz_score,
+    davies_bouldin_score
+)
+
+def calculate_clustering_metrics(X, labels):
+    metrics = {
+        'silhouette': silhouette_score(X, labels),
+        'calinski_harabasz': calinski_harabasz_score(X, labels),
+        'davies_bouldin': davies_bouldin_score(X, labels)
+    }
+    return metrics
+```
+
+### External Metrics
+
+```python
+from sklearn.metrics import (
+    adjusted_rand_score,
+    adjusted_mutual_info_score,
+    normalized_mutual_info_score
+)
+
+def calculate_clustering_comparison(labels_true, labels_pred):
+    metrics = {
+        'adjusted_rand': adjusted_rand_score(
+            labels_true,
+            labels_pred
+        ),
+        'adjusted_mutual_info': adjusted_mutual_info_score(
+            labels_true,
+            labels_pred
+        ),
+        'normalized_mutual_info': normalized_mutual_info_score(
+            labels_true,
+            labels_pred
+        )
+    }
+    return metrics
+```
+
+## Cross-Validation Metrics
+
+```python
+from sklearn.model_selection import cross_val_score
+
+def perform_cross_validation(model, X, y, cv=5, scoring=None):
+    # Perform cross-validation
+    scores = cross_val_score(
+        model, X, y,
+        cv=cv,
+        scoring=scoring
+    )
+    
+    return {
+        'mean_score': scores.mean(),
+        'std_score': scores.std(),
+        'all_scores': scores
+    }
+```
+
+## Statistical Tests
+
+```python
+from scipy import stats
+
+def compare_models(scores_model1, scores_model2):
+    # Perform t-test
+    t_stat, p_value = stats.ttest_ind(
+        scores_model1,
+        scores_model2
+    )
+    
+    return {
+        't_statistic': t_stat,
+        'p_value': p_value
+    }
+```
+
+## Time Series Metrics
+
+```python
+def calculate_time_series_metrics(y_true, y_pred):
+    # Calculate specific time series metrics
+    mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+    
+    metrics = {
+        'mape': mape,
+        'rmse': np.sqrt(mean_squared_error(y_true, y_pred)),
+        'mae': mean_absolute_error(y_true, y_pred)
+    }
+    return metrics
+```
+
+## Custom Metrics
+
+```python
+def create_custom_scorer(metric_func):
+    """
+    Create a custom scorer for sklearn
+    """
+    return make_scorer(metric_func)
+
+def weighted_accuracy(y_true, y_pred, weights):
+    """
+    Calculate weighted accuracy
+    """
+    correct = (y_true == y_pred)
+    return np.sum(correct * weights) / np.sum(weights)
+```
+
+## Visualization Tools
+
+```python
+def plot_learning_curves(train_scores, val_scores):
+    plt.figure(figsize=(10, 6))
+    plt.plot(train_scores, label='Training Score')
+    plt.plot(val_scores, label='Validation Score')
+    plt.xlabel('Training Examples')
+    plt.ylabel('Score')
+    plt.title('Learning Curves')
+    plt.legend()
+    return plt
+
+def plot_metric_comparison(metrics_dict):
+    plt.figure(figsize=(12, 6))
+    plt.bar(metrics_dict.keys(), metrics_dict.values())
+    plt.xticks(rotation=45)
+    plt.title('Metric Comparison')
+    return plt
+```
+
+## Best Practices
+
+1. **Metric Selection**
+```python
+def select_metrics(problem_type, class_balance=None):
+    if problem_type == 'classification':
+        if class_balance == 'imbalanced':
+            return ['precision', 'recall', 'f1']
+        return ['accuracy', 'f1']
+    elif problem_type == 'regression':
+        return ['rmse', 'mae', 'r2']
+    elif problem_type == 'clustering':
+        return ['silhouette', 'calinski_harabasz']
+```
+
+2. **Confidence Intervals**
+```python
+def calculate_confidence_interval(scores, confidence=0.95):
+    mean = np.mean(scores)
+    std = np.std(scores)
+    interval = stats.t.interval(
+        confidence,
+        len(scores)-1,
+        loc=mean,
+        scale=std/np.sqrt(len(scores))
+    )
+    return {
+        'mean': mean,
+        'confidence_interval': interval
+    }
+```
+
+3. **Report Generation**
+```python
+def generate_performance_report(y_true, y_pred, y_prob=None):
+    report = {
+        'basic_metrics': calculate_basic_metrics(y_true, y_pred),
+        'confusion_matrix': confusion_matrix(y_true, y_pred)
+    }
+    
+    if y_prob is not None:
+        report['roc_auc'] = roc_auc_score(y_true, y_prob)
+    
+    return report
+``` 

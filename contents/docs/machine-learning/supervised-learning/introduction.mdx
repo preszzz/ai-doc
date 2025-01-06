@@ -1,0 +1,251 @@
+---
+title: 'Introduction to Supervised Learning'
+description: 'Understanding the fundamentals of supervised learning in machine learning'
+icon: 'book'
+draft: false
+---
+
+Supervised learning is a machine learning paradigm where models learn from labeled training data to make predictions on new, unseen data.
+
+## Core Concepts
+
+### What is Supervised Learning?
+
+Supervised learning involves learning a function that maps input features (X) to output labels (y):
+
+```math
+f: X \rightarrow y
+```
+
+The goal is to find a function f that minimizes the prediction error:
+
+```math
+\min_f \mathbb{E}_{(x,y)}[L(f(x), y)]
+```
+
+where L is a loss function measuring the difference between predictions and true values.
+
+## Types of Supervised Learning Problems
+
+### Classification
+- Predicting discrete class labels
+- Examples: spam detection, image classification, sentiment analysis
+
+```python
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+
+# Generate sample classification data
+X, y = make_classification(
+    n_samples=1000,
+    n_features=20,
+    n_informative=15,
+    n_redundant=5,
+    random_state=42
+)
+
+# Split into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+```
+
+### Regression
+- Predicting continuous values
+- Examples: house price prediction, stock price forecasting
+
+```python
+from sklearn.datasets import make_regression
+
+# Generate sample regression data
+X, y = make_regression(
+    n_samples=1000,
+    n_features=20,
+    n_informative=15,
+    noise=0.1,
+    random_state=42
+)
+```
+
+## Learning Process
+
+### Training Phase
+
+1. **Data Preparation**
+```python
+def prepare_data(X, y):
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+    
+    # Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    
+    return X_train_scaled, X_test_scaled, y_train, y_test
+```
+
+2. **Model Training**
+```python
+from sklearn.linear_model import LogisticRegression
+
+def train_model(X_train, y_train):
+    # Initialize model
+    model = LogisticRegression()
+    
+    # Train model
+    model.fit(X_train, y_train)
+    
+    return model
+```
+
+### Evaluation Phase
+
+```python
+from sklearn.metrics import accuracy_score, classification_report
+
+def evaluate_model(model, X_test, y_test):
+    # Make predictions
+    y_pred = model.predict(X_test)
+    
+    # Calculate metrics
+    accuracy = accuracy_score(y_test, y_pred)
+    report = classification_report(y_test, y_pred)
+    
+    return accuracy, report
+```
+
+## Bias-Variance Tradeoff
+
+The fundamental tradeoff in supervised learning between model complexity and generalization:
+
+### High Bias (Underfitting)
+- Model is too simple
+- Poor performance on both training and test data
+- Solution: Try more complex models or add features
+
+### High Variance (Overfitting)
+- Model is too complex
+- Excellent training performance but poor test performance
+- Solution: Regularization, more training data, or simpler models
+
+```python
+def analyze_bias_variance(model, X_train, X_test, y_train, y_test):
+    # Training performance
+    train_score = model.score(X_train, y_train)
+    
+    # Test performance
+    test_score = model.score(X_test, y_test)
+    
+    # Analyze gap
+    gap = train_score - test_score
+    
+    return {
+        'train_score': train_score,
+        'test_score': test_score,
+        'gap': gap,
+        'diagnosis': 'High Variance' if gap > 0.1 else 'Balanced'
+    }
+```
+
+## Cross-Validation
+
+Robust method for model evaluation:
+
+```python
+from sklearn.model_selection import cross_val_score
+
+def perform_cross_validation(model, X, y, cv=5):
+    # Perform k-fold cross-validation
+    scores = cross_val_score(model, X, y, cv=cv)
+    
+    return {
+        'mean_score': scores.mean(),
+        'std_score': scores.std(),
+        'all_scores': scores
+    }
+```
+
+## Learning Curves
+
+Visualizing model performance across different training set sizes:
+
+```python
+from sklearn.model_selection import learning_curve
+import matplotlib.pyplot as plt
+
+def plot_learning_curves(model, X, y):
+    # Calculate learning curves
+    train_sizes, train_scores, test_scores = learning_curve(
+        model, X, y, cv=5,
+        train_sizes=np.linspace(0.1, 1.0, 10)
+    )
+    
+    # Calculate mean and std
+    train_mean = np.mean(train_scores, axis=1)
+    train_std = np.std(train_scores, axis=1)
+    test_mean = np.mean(test_scores, axis=1)
+    test_std = np.std(test_scores, axis=1)
+    
+    # Plot curves
+    plt.figure(figsize=(10, 6))
+    plt.plot(train_sizes, train_mean, label='Training score')
+    plt.plot(train_sizes, test_mean, label='Cross-validation score')
+    plt.fill_between(train_sizes, 
+                     train_mean - train_std,
+                     train_mean + train_std, 
+                     alpha=0.1)
+    plt.fill_between(train_sizes,
+                     test_mean - test_std,
+                     test_mean + test_std, 
+                     alpha=0.1)
+    plt.xlabel('Training Examples')
+    plt.ylabel('Score')
+    plt.title('Learning Curves')
+    plt.legend(loc='best')
+    plt.grid(True)
+    
+    return plt
+```
+
+## Best Practices
+
+1. **Data Quality**
+   - Clean and preprocess data thoroughly
+   - Handle missing values and outliers
+   - Balance datasets for classification
+
+2. **Feature Engineering**
+   - Create relevant features
+   - Remove redundant features
+   - Scale features appropriately
+
+3. **Model Selection**
+   - Start with simple models
+   - Gradually increase complexity if needed
+   - Use cross-validation for evaluation
+
+4. **Hyperparameter Tuning**
+```python
+from sklearn.model_selection import GridSearchCV
+
+def tune_hyperparameters(model, param_grid, X, y):
+    # Perform grid search
+    grid_search = GridSearchCV(
+        model, param_grid, cv=5,
+        scoring='accuracy', n_jobs=-1
+    )
+    grid_search.fit(X, y)
+    
+    return {
+        'best_params': grid_search.best_params_,
+        'best_score': grid_search.best_score_
+    }
+```
+
+5. **Model Validation**
+   - Use separate validation set
+   - Implement k-fold cross-validation
+   - Check for overfitting/underfitting 

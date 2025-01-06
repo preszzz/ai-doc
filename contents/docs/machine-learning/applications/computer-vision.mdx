@@ -1,0 +1,426 @@
+---
+title: 'Computer Vision'
+description: 'Understanding and implementing computer vision algorithms and techniques'
+icon: 'visibility'
+draft: false
+---
+
+Computer vision techniques for image processing, analysis, and understanding.
+
+## Image Processing Fundamentals
+
+### Basic Image Operations
+
+```python
+import cv2
+import numpy as np
+from PIL import Image
+
+def load_and_preprocess_image(image_path, target_size=(224, 224)):
+    # Read image
+    image = cv2.imread(image_path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Resize
+    image = cv2.resize(image, target_size)
+    
+    # Normalize
+    image = image.astype(np.float32) / 255.0
+    
+    return image
+
+def apply_image_transformations(image):
+    # Brightness adjustment
+    brightness = np.ones(image.shape, dtype="uint8") * 50
+    brightened = cv2.add(image, brightness)
+    
+    # Contrast adjustment
+    contrast = 1.5
+    contrasted = cv2.multiply(image, contrast)
+    
+    # Gaussian blur
+    blurred = cv2.GaussianBlur(image, (5, 5), 0)
+    
+    return brightened, contrasted, blurred
+```
+
+### Image Augmentation
+
+```python
+import albumentations as A
+
+def create_augmentation_pipeline():
+    transform = A.Compose([
+        A.RandomRotate90(),
+        A.Flip(p=0.5),
+        A.ShiftScaleRotate(
+            shift_limit=0.0625,
+            scale_limit=0.1,
+            rotate_limit=45,
+            p=0.5
+        ),
+        A.OneOf([
+            A.ElasticTransform(alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03),
+            A.GridDistortion(),
+            A.OpticalDistortion(distort_limit=1, shift_limit=0.5),
+        ], p=0.3),
+        A.OneOf([
+            A.GaussNoise(),
+            A.RandomBrightnessContrast(),
+            A.RandomGamma(),
+        ], p=0.3),
+    ])
+    return transform
+```
+
+## Convolutional Neural Networks
+
+### Basic CNN Architecture
+
+```python
+import torch
+import torch.nn as nn
+
+class ConvNet(nn.Module):
+    def __init__(self, num_classes=1000):
+        super(ConvNet, self).__init__()
+        
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        
+        self.classifier = nn.Sequential(
+            nn.Linear(256 * 28 * 28, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(512, num_classes)
+        )
+        
+    def forward(self, x):
+        x = self.features(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
+        return x
+```
+
+### Transfer Learning
+
+```python
+import torchvision.models as models
+
+def create_transfer_learning_model(num_classes, model_name='resnet50'):
+    if model_name == 'resnet50':
+        model = models.resnet50(pretrained=True)
+        
+        # Freeze layers
+        for param in model.parameters():
+            param.requires_grad = False
+            
+        # Replace final layer
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
+        
+    return model
+
+def train_transfer_learning(model, train_loader, val_loader, num_epochs=10):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.fc.parameters())
+    
+    for epoch in range(num_epochs):
+        model.train()
+        for images, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            
+        # Validation
+        model.eval()
+        val_loss = 0
+        correct = 0
+        total = 0
+        
+        with torch.no_grad():
+            for images, labels in val_loader:
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+                
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += predicted.eq(labels).sum().item()
+                
+        accuracy = 100. * correct / total
+        print(f'Epoch [{epoch+1}/{num_epochs}], Accuracy: {accuracy:.2f}%')
+```
+
+## Object Detection
+
+### YOLO Implementation
+
+```python
+class YOLOv3(nn.Module):
+    def __init__(self, num_classes=80):
+        super(YOLOv3, self).__init__()
+        
+        # Darknet-53 backbone
+        self.backbone = self._create_backbone()
+        
+        # Detection heads
+        self.detect1 = self._create_detection_head(1024, num_classes)
+        self.detect2 = self._create_detection_head(512, num_classes)
+        self.detect3 = self._create_detection_head(256, num_classes)
+        
+    def _create_backbone(self):
+        # Simplified Darknet-53 implementation
+        layers = [
+            nn.Conv2d(3, 32, 3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(0.1),
+            # ... more layers
+        ]
+        return nn.Sequential(*layers)
+    
+    def _create_detection_head(self, in_channels, num_classes):
+        return nn.Sequential(
+            nn.Conv2d(in_channels, in_channels//2, 1),
+            nn.Conv2d(in_channels//2, (num_classes + 5) * 3, 1)
+        )
+    
+    def forward(self, x):
+        # Forward pass implementation
+        features = self.backbone(x)
+        detect1 = self.detect1(features)
+        detect2 = self.detect2(features)
+        detect3 = self.detect3(features)
+        
+        return [detect1, detect2, detect3]
+
+def process_yolo_output(outputs, confidence_threshold=0.5, nms_threshold=0.4):
+    boxes = []
+    confidences = []
+    class_ids = []
+    
+    # Process each detection
+    for output in outputs:
+        # Convert output to bounding boxes
+        for detection in output:
+            scores = detection[5:]
+            class_id = np.argmax(scores)
+            confidence = scores[class_id]
+            
+            if confidence > confidence_threshold:
+                center_x = detection[0]
+                center_y = detection[1]
+                width = detection[2]
+                height = detection[3]
+                
+                # Rectangle coordinates
+                x = int(center_x - width/2)
+                y = int(center_y - height/2)
+                
+                boxes.append([x, y, int(width), int(height)])
+                confidences.append(float(confidence))
+                class_ids.append(class_id)
+    
+    # Apply Non-Maximum Suppression
+    indices = cv2.dnn.NMSBoxes(
+        boxes,
+        confidences,
+        confidence_threshold,
+        nms_threshold
+    )
+    
+    return [boxes[i] for i in indices], [class_ids[i] for i in indices]
+```
+
+## Semantic Segmentation
+
+### U-Net Architecture
+
+```python
+class UNet(nn.Module):
+    def __init__(self, n_channels, n_classes):
+        super(UNet, self).__init__()
+        
+        # Encoder
+        self.enc1 = self._double_conv(n_channels, 64)
+        self.enc2 = self._double_conv(64, 128)
+        self.enc3 = self._double_conv(128, 256)
+        self.enc4 = self._double_conv(256, 512)
+        
+        # Decoder
+        self.up1 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.dec1 = self._double_conv(512, 256)
+        self.up2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
+        self.dec2 = self._double_conv(256, 128)
+        self.up3 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+        self.dec3 = self._double_conv(128, 64)
+        
+        self.final = nn.Conv2d(64, n_classes, kernel_size=1)
+        
+    def _double_conv(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+    
+    def forward(self, x):
+        # Encoder
+        enc1 = self.enc1(x)
+        enc2 = self.enc2(F.max_pool2d(enc1, 2))
+        enc3 = self.enc3(F.max_pool2d(enc2, 2))
+        enc4 = self.enc4(F.max_pool2d(enc3, 2))
+        
+        # Decoder
+        dec1 = self.dec1(torch.cat([
+            self.up1(enc4),
+            enc3
+        ], dim=1))
+        dec2 = self.dec2(torch.cat([
+            self.up2(dec1),
+            enc2
+        ], dim=1))
+        dec3 = self.dec3(torch.cat([
+            self.up3(dec2),
+            enc1
+        ], dim=1))
+        
+        return self.final(dec3)
+```
+
+## Face Detection and Recognition
+
+```python
+import face_recognition
+
+def process_faces(image_path):
+    # Load image
+    image = face_recognition.load_image_file(image_path)
+    
+    # Find faces
+    face_locations = face_recognition.face_locations(image)
+    face_encodings = face_recognition.face_encodings(image, face_locations)
+    
+    return face_locations, face_encodings
+
+def compare_faces(known_encoding, face_encodings, tolerance=0.6):
+    matches = face_recognition.compare_faces(
+        [known_encoding],
+        face_encodings,
+        tolerance=tolerance
+    )
+    
+    face_distances = face_recognition.face_distance(
+        [known_encoding],
+        face_encodings
+    )
+    
+    return matches, face_distances
+```
+
+## Image Feature Extraction
+
+```python
+def extract_image_features(image, method='sift'):
+    if method == 'sift':
+        # SIFT feature extraction
+        sift = cv2.SIFT_create()
+        keypoints, descriptors = sift.detectAndCompute(image, None)
+        return keypoints, descriptors
+    
+    elif method == 'orb':
+        # ORB feature extraction
+        orb = cv2.ORB_create()
+        keypoints, descriptors = orb.detectAndCompute(image, None)
+        return keypoints, descriptors
+
+def match_features(desc1, desc2, method='bf'):
+    if method == 'bf':
+        # Brute force matching
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(desc1, desc2, k=2)
+        
+        # Apply ratio test
+        good_matches = []
+        for m, n in matches:
+            if m.distance < 0.75 * n.distance:
+                good_matches.append(m)
+                
+        return good_matches
+```
+
+## Best Practices
+
+1. **Data Preprocessing**
+```python
+def preprocess_image_batch(images, target_size=(224, 224)):
+    processed = []
+    for image in images:
+        # Resize
+        image = cv2.resize(image, target_size)
+        
+        # Normalize
+        image = image.astype(np.float32) / 255.0
+        
+        # Standardize
+        mean = [0.485, 0.456, 0.406]
+        std = [0.229, 0.224, 0.225]
+        image = (image - mean) / std
+        
+        processed.append(image)
+    
+    return np.array(processed)
+```
+
+2. **Model Evaluation**
+```python
+def evaluate_vision_model(model, test_loader, criterion):
+    model.eval()
+    total_loss = 0
+    correct = 0
+    total = 0
+    
+    with torch.no_grad():
+        for images, labels in test_loader:
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            
+            total_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+    
+    accuracy = 100. * correct / total
+    avg_loss = total_loss / len(test_loader)
+    
+    return {
+        'accuracy': accuracy,
+        'loss': avg_loss
+    }
+```
+
+3. **GPU Utilization**
+```python
+def move_to_device(model, data):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+    
+    if isinstance(data, (list, tuple)):
+        return [x.to(device) for x in data]
+    return data.to(device)
+```

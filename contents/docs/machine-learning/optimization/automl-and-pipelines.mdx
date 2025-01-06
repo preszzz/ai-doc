@@ -1,0 +1,259 @@
+---
+title: 'AutoML and Pipelines'
+description: 'Understanding and implementing automated machine learning and pipeline construction for efficient model development'
+icon: 'auto-fix'
+draft: false
+---
+
+## Introduction to AutoML
+
+AutoML automates the process of applying machine learning to real-world problems, including feature engineering, model selection, and hyperparameter optimization.
+
+## Pipeline Construction
+
+### Basic Pipeline
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+
+def create_basic_pipeline():
+    """Create a basic machine learning pipeline"""
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('classifier', RandomForestClassifier())
+    ])
+    
+    return pipeline
+
+def create_custom_pipeline(steps):
+    """Create a custom pipeline with specified steps"""
+    return Pipeline(steps)
+```
+
+### Feature Engineering Pipeline
+```python
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+def create_feature_pipeline(numeric_features, categorical_features):
+    """Create a feature engineering pipeline"""
+    numeric_transformer = Pipeline(
+        steps=[('scaler', StandardScaler())]
+    )
+    
+    categorical_transformer = Pipeline(
+        steps=[('onehot', OneHotEncoder(drop='first'))]
+    )
+    
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numeric_transformer, numeric_features),
+            ('cat', categorical_transformer, categorical_features)
+        ]
+    )
+    
+    return preprocessor
+```
+
+## AutoML Implementation
+
+### Model Search
+```python
+import optuna
+
+def automl_model_search(X, y, n_trials=100):
+    """Automated model selection and hyperparameter tuning"""
+    def objective(trial):
+        # Define model options
+        model_type = trial.suggest_categorical(
+            'model_type',
+            ['rf', 'xgb', 'lgb']
+        )
+        
+        # Get model and parameters
+        if model_type == 'rf':
+            model = RandomForestClassifier(
+                n_estimators=trial.suggest_int('n_estimators', 10, 100),
+                max_depth=trial.suggest_int('max_depth', 2, 32),
+                min_samples_split=trial.suggest_int('min_samples_split', 2, 10)
+            )
+        elif model_type == 'xgb':
+            model = XGBClassifier(
+                n_estimators=trial.suggest_int('n_estimators', 10, 100),
+                max_depth=trial.suggest_int('max_depth', 2, 32),
+                learning_rate=trial.suggest_float('learning_rate', 1e-4, 1e-1)
+            )
+        else:
+            model = LGBMClassifier(
+                n_estimators=trial.suggest_int('n_estimators', 10, 100),
+                max_depth=trial.suggest_int('max_depth', 2, 32),
+                learning_rate=trial.suggest_float('learning_rate', 1e-4, 1e-1)
+            )
+        
+        # Cross-validation score
+        score = cross_val_score(model, X, y, cv=5).mean()
+        return score
+    
+    # Run optimization
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=n_trials)
+    
+    return study.best_trial
+
+```
+
+### Feature Selection
+```python
+from sklearn.feature_selection import SelectFromModel
+from sklearn.ensemble import RandomForestClassifier
+
+def automated_feature_selection(X, y, method='rf'):
+    """Automated feature selection"""
+    if method == 'rf':
+        selector = SelectFromModel(
+            RandomForestClassifier(n_estimators=100),
+            prefit=False
+        )
+    
+    # Fit and transform
+    X_selected = selector.fit_transform(X, y)
+    selected_features = X.columns[selector.get_support()].tolist()
+    
+    return X_selected, selected_features, selector
+```
+
+### Hyperparameter Optimization
+```python
+from sklearn.model_selection import RandomizedSearchCV
+
+def automl_hyperparameter_tuning(model, param_distributions, X, y):
+    """Automated hyperparameter tuning"""
+    # Initialize random search
+    random_search = RandomizedSearchCV(
+        model,
+        param_distributions=param_distributions,
+        n_iter=100,
+        cv=5,
+        n_jobs=-1,
+        verbose=1
+    )
+    
+    # Fit random search
+    random_search.fit(X, y)
+    
+    return random_search.best_estimator_, random_search.best_params_
+```
+
+## Advanced Pipeline Features
+
+### Custom Transformers
+```python
+class FeatureGenerator(BaseEstimator, TransformerMixin):
+    """Custom feature generator"""
+    
+    def __init__(self, operations=None):
+        self.operations = operations or ['log', 'square', 'sqrt']
+    
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        X_new = X.copy()
+        
+        for col in X.columns:
+            if 'log' in self.operations:
+                X_new[f'{col}_log'] = np.log1p(X[col])
+            if 'square' in self.operations:
+                X_new[f'{col}_squared'] = X[col] ** 2
+            if 'sqrt' in self.operations:
+                X_new[f'{col}_sqrt'] = np.sqrt(X[col])
+        
+        return X_new
+```
+
+### Pipeline Persistence
+```python
+import joblib
+
+def save_pipeline(pipeline, filename):
+    """Save pipeline to disk"""
+    joblib.dump(pipeline, filename)
+
+def load_pipeline(filename):
+    """Load pipeline from disk"""
+    return joblib.load(filename)
+```
+
+## AutoML Libraries Integration
+
+### H2O AutoML
+```python
+import h2o
+from h2o.automl import H2OAutoML
+
+def run_h2o_automl(X, y, time_limit=3600):
+    """Run H2O AutoML"""
+    # Initialize H2O
+    h2o.init()
+    
+    # Convert to H2O frame
+    train = h2o.H2OFrame(pd.concat([X, y], axis=1))
+    
+    # Run AutoML
+    aml = H2OAutoML(
+        max_runtime_secs=time_limit,
+        seed=1
+    )
+    aml.train(
+        y=y.name,
+        training_frame=train
+    )
+    
+    return aml.leader
+```
+
+### Auto-Sklearn
+```python
+import autosklearn.classification
+
+def run_autosklearn(X, y, time_limit=3600):
+    """Run Auto-Sklearn"""
+    # Initialize Auto-Sklearn
+    automl = autosklearn.classification.AutoSklearnClassifier(
+        time_left_for_this_task=time_limit,
+        per_run_time_limit=360,
+        ensemble_size=50
+    )
+    
+    # Fit AutoML
+    automl.fit(X, y)
+    
+    return automl
+```
+
+## Best Practices
+
+### 1. Pipeline Design
+- Keep pipelines modular
+- Include all preprocessing steps
+- Handle missing values
+- Validate transformations
+
+### 2. AutoML Configuration
+- Set appropriate time limits
+- Define metric objectives
+- Consider resource constraints
+- Monitor progress
+
+### 3. Model Selection
+- Define model search space
+- Use cross-validation
+- Consider model complexity
+- Evaluate performance
+
+### 4. Common Pitfalls
+- Overfitting in AutoML
+- Insufficient validation
+- Resource exhaustion
+- Complex pipelines

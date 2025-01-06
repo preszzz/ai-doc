@@ -1,0 +1,405 @@
+---
+title: "Ensemble Methods"
+description: "This section covers ensemble learning methods, including bagging, boosting, and stacking techniques."
+---
+
+## Bagging Methods
+
+### 1. Random Forest
+```python
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+import numpy as np
+import matplotlib.pyplot as plt
+
+class RandomForestWrapper:
+    def __init__(
+        self,
+        task='classification',
+        n_estimators=100,
+        **kwargs
+    ):
+        """Initialize random forest"""
+        self.task = task
+        if task == 'classification':
+            self.model = RandomForestClassifier(
+                n_estimators=n_estimators,
+                **kwargs
+            )
+        elif task == 'regression':
+            self.model = RandomForestRegressor(
+                n_estimators=n_estimators,
+                **kwargs
+            )
+        else:
+            raise ValueError("Task must be 'classification' or 'regression'")
+    
+    def fit(self, X, y):
+        """Fit random forest"""
+        return self.model.fit(X, y)
+    
+    def predict(self, X):
+        """Make predictions"""
+        return self.model.predict(X)
+    
+    def feature_importance(self, feature_names=None):
+        """Plot feature importance"""
+        importances = self.model.feature_importances_
+        indices = np.argsort(importances)[::-1]
+        
+        plt.figure(figsize=(10, 6))
+        plt.title('Feature Importances')
+        plt.bar(
+            range(len(importances)),
+            importances[indices],
+            align='center'
+        )
+        
+        if feature_names is not None:
+            plt.xticks(
+                range(len(importances)),
+                [feature_names[i] for i in indices],
+                rotation=45
+            )
+        
+        plt.tight_layout()
+        return plt.gcf()
+    
+    def plot_tree_predictions(self, X):
+        """Plot predictions of individual trees"""
+        predictions = np.array([
+            tree.predict(X)
+            for tree in self.model.estimators_
+        ])
+        
+        plt.figure(figsize=(10, 6))
+        plt.boxplot(predictions.T)
+        plt.title('Individual Tree Predictions')
+        plt.xlabel('Sample')
+        plt.ylabel('Prediction')
+        plt.tight_layout()
+        return plt.gcf()
+```
+
+### 2. Extra Trees
+```python
+from sklearn.ensemble import ExtraTreesClassifier, ExtraTreesRegressor
+
+class ExtraTreesWrapper:
+    def __init__(
+        self,
+        task='classification',
+        n_estimators=100,
+        **kwargs
+    ):
+        """Initialize extra trees"""
+        self.task = task
+        if task == 'classification':
+            self.model = ExtraTreesClassifier(
+                n_estimators=n_estimators,
+                **kwargs
+            )
+        elif task == 'regression':
+            self.model = ExtraTreesRegressor(
+                n_estimators=n_estimators,
+                **kwargs
+            )
+        else:
+            raise ValueError("Task must be 'classification' or 'regression'")
+    
+    def fit(self, X, y):
+        """Fit extra trees"""
+        return self.model.fit(X, y)
+    
+    def predict(self, X):
+        """Make predictions"""
+        return self.model.predict(X)
+```
+
+## Boosting Methods
+
+### 1. Gradient Boosting
+```python
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
+import xgboost as xgb
+import lightgbm as lgb
+
+class GradientBoostingWrapper:
+    def __init__(
+        self,
+        task='classification',
+        method='sklearn',
+        **kwargs
+    ):
+        """Initialize gradient boosting model"""
+        self.task = task
+        self.method = method
+        
+        if method == 'sklearn':
+            if task == 'classification':
+                self.model = GradientBoostingClassifier(**kwargs)
+            else:
+                self.model = GradientBoostingRegressor(**kwargs)
+        elif method == 'xgboost':
+            if task == 'classification':
+                self.model = xgb.XGBClassifier(**kwargs)
+            else:
+                self.model = xgb.XGBRegressor(**kwargs)
+        elif method == 'lightgbm':
+            if task == 'classification':
+                self.model = lgb.LGBMClassifier(**kwargs)
+            else:
+                self.model = lgb.LGBMRegressor(**kwargs)
+        else:
+            raise ValueError(
+                "Method must be 'sklearn', 'xgboost', or 'lightgbm'"
+            )
+    
+    def fit(self, X, y, eval_set=None):
+        """Fit gradient boosting model"""
+        if self.method in ['xgboost', 'lightgbm'] and eval_set is not None:
+            return self.model.fit(
+                X, y,
+                eval_set=eval_set,
+                early_stopping_rounds=10,
+                verbose=False
+            )
+        return self.model.fit(X, y)
+    
+    def predict(self, X):
+        """Make predictions"""
+        return self.model.predict(X)
+    
+    def plot_learning_curve(self, X, y, cv=5):
+        """Plot learning curve"""
+        from sklearn.model_selection import learning_curve
+        
+        train_sizes, train_scores, test_scores = learning_curve(
+            self.model, X, y,
+            cv=cv,
+            n_jobs=-1,
+            train_sizes=np.linspace(0.1, 1.0, 10)
+        )
+        
+        train_mean = np.mean(train_scores, axis=1)
+        train_std = np.std(train_scores, axis=1)
+        test_mean = np.mean(test_scores, axis=1)
+        test_std = np.std(test_scores, axis=1)
+        
+        plt.figure(figsize=(10, 6))
+        plt.plot(
+            train_sizes,
+            train_mean,
+            label='Training score'
+        )
+        plt.plot(
+            train_sizes,
+            test_mean,
+            label='Cross-validation score'
+        )
+        
+        plt.fill_between(
+            train_sizes,
+            train_mean - train_std,
+            train_mean + train_std,
+            alpha=0.1
+        )
+        plt.fill_between(
+            train_sizes,
+            test_mean - test_std,
+            test_mean + test_std,
+            alpha=0.1
+        )
+        
+        plt.xlabel('Training Examples')
+        plt.ylabel('Score')
+        plt.title('Learning Curve')
+        plt.legend(loc='best')
+        plt.grid(True)
+        
+        return plt.gcf()
+```
+
+### 2. AdaBoost
+```python
+from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
+
+class AdaBoostWrapper:
+    def __init__(
+        self,
+        task='classification',
+        n_estimators=50,
+        base_estimator=None,
+        **kwargs
+    ):
+        """Initialize AdaBoost"""
+        self.task = task
+        if task == 'classification':
+            self.model = AdaBoostClassifier(
+                base_estimator=base_estimator,
+                n_estimators=n_estimators,
+                **kwargs
+            )
+        elif task == 'regression':
+            self.model = AdaBoostRegressor(
+                base_estimator=base_estimator,
+                n_estimators=n_estimators,
+                **kwargs
+            )
+        else:
+            raise ValueError("Task must be 'classification' or 'regression'")
+    
+    def fit(self, X, y):
+        """Fit AdaBoost"""
+        return self.model.fit(X, y)
+    
+    def predict(self, X):
+        """Make predictions"""
+        return self.model.predict(X)
+    
+    def plot_feature_importance(self, feature_names=None):
+        """Plot feature importance"""
+        importances = self.model.feature_importances_
+        indices = np.argsort(importances)[::-1]
+        
+        plt.figure(figsize=(10, 6))
+        plt.title('Feature Importances')
+        plt.bar(
+            range(len(importances)),
+            importances[indices],
+            align='center'
+        )
+        
+        if feature_names is not None:
+            plt.xticks(
+                range(len(importances)),
+                [feature_names[i] for i in indices],
+                rotation=45
+            )
+        
+        plt.tight_layout()
+        return plt.gcf()
+```
+
+## Stacking Methods
+
+### 1. Stacking Ensemble
+```python
+from sklearn.ensemble import StackingClassifier, StackingRegressor
+from sklearn.model_selection import cross_val_predict
+
+class StackingEnsemble:
+    def __init__(
+        self,
+        base_models,
+        meta_model,
+        task='classification',
+        cv=5
+    ):
+        """Initialize stacking ensemble"""
+        self.task = task
+        self.cv = cv
+        
+        if task == 'classification':
+            self.model = StackingClassifier(
+                estimators=base_models,
+                final_estimator=meta_model,
+                cv=cv
+            )
+        elif task == 'regression':
+            self.model = StackingRegressor(
+                estimators=base_models,
+                final_estimator=meta_model,
+                cv=cv
+            )
+        else:
+            raise ValueError("Task must be 'classification' or 'regression'")
+    
+    def fit(self, X, y):
+        """Fit stacking ensemble"""
+        return self.model.fit(X, y)
+    
+    def predict(self, X):
+        """Make predictions"""
+        return self.model.predict(X)
+    
+    def get_base_predictions(self, X, y):
+        """Get predictions from base models"""
+        predictions = {}
+        
+        for name, model in self.model.estimators_:
+            pred = cross_val_predict(
+                model,
+                X, y,
+                cv=self.cv,
+                method='predict_proba' if self.task == 'classification' else 'predict'
+            )
+            predictions[name] = pred
+        
+        return predictions
+```
+
+## Model Selection and Tuning
+
+### 1. Hyperparameter Tuning
+```python
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+
+def tune_ensemble(
+    model,
+    param_grid,
+    X,
+    y,
+    cv=5,
+    method='grid',
+    n_iter=100
+):
+    """Tune ensemble model hyperparameters"""
+    if method == 'grid':
+        search = GridSearchCV(
+            model,
+            param_grid,
+            cv=cv,
+            n_jobs=-1,
+            verbose=1
+        )
+    elif method == 'random':
+        search = RandomizedSearchCV(
+            model,
+            param_grid,
+            n_iter=n_iter,
+            cv=cv,
+            n_jobs=-1,
+            verbose=1
+        )
+    else:
+        raise ValueError("Method must be 'grid' or 'random'")
+    
+    search.fit(X, y)
+    return search.best_params_, search.best_score_
+```
+
+## Best Practices
+
+### 1. Ensemble Design
+- Choose diverse base models
+- Balance model complexity
+- Consider computational cost
+- Monitor memory usage
+
+### 2. Model Selection
+- Use appropriate base models
+- Consider problem characteristics
+- Validate ensemble performance
+- Monitor overfitting
+
+### 3. Hyperparameter Tuning
+- Tune individual models
+- Optimize ensemble parameters
+- Use appropriate search strategy
+- Validate results
+
+### 4. Performance Evaluation
+- Use proper validation
+- Monitor diversity metrics
+- Compare with base models
+- Consider interpretability 

@@ -1,0 +1,179 @@
+---
+title: 'Encoding Techniques'
+description: 'Methods for encoding categorical and numerical features for machine learning models'
+icon: 'code'
+draft: false
+---
+
+Feature encoding is the process of converting categorical and numerical data into a format that machine learning algorithms can process effectively.
+
+## Categorical Encoding
+
+### One-Hot Encoding
+
+Converts categorical variables into binary vectors where each category becomes a new column.
+
+```python
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+
+# Sample data
+data = pd.DataFrame({
+    'color': ['red', 'blue', 'green', 'red']
+})
+
+# One-hot encoding
+encoder = OneHotEncoder(sparse=False)
+encoded = encoder.fit_transform(data[['color']])
+encoded_df = pd.DataFrame(
+    encoded, 
+    columns=encoder.get_feature_names_out(['color'])
+)
+```
+
+### Label Encoding
+
+Converts categories into numerical values. Best used for ordinal data.
+
+```python
+from sklearn.preprocessing import LabelEncoder
+
+# Label encoding
+encoder = LabelEncoder()
+data['color_encoded'] = encoder.fit_transform(data['color'])
+```
+
+### Target Encoding
+
+Replaces categories with the mean target value for that category. Useful for high-cardinality features.
+
+```python
+# Target encoding example
+def target_encode(train, test, column, target):
+    means = train.groupby(column)[target].mean()
+    train_encoded = train[column].map(means)
+    test_encoded = test[column].map(means)
+    return train_encoded, test_encoded
+```
+
+## Numerical Encoding
+
+### Min-Max Scaling
+
+Scales features to a fixed range, typically [0, 1]:
+
+```math
+X_{scaled} = \frac{X - X_{min}}{X_{max} - X_{min}}
+```
+
+```python
+from sklearn.preprocessing import MinMaxScaler
+
+scaler = MinMaxScaler()
+X_scaled = scaler.fit_transform(X)
+```
+
+### Standardization (Z-score normalization)
+
+Transforms features to have zero mean and unit variance:
+
+```math
+X_{standardized} = \frac{X - \mu}{\sigma}
+```
+
+```python
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X_standardized = scaler.fit_transform(X)
+```
+
+## Advanced Encoding Techniques
+
+### Feature Hashing
+
+Useful for high-cardinality categorical variables:
+
+```python
+from sklearn.feature_extraction import FeatureHasher
+
+hasher = FeatureHasher(n_features=8, input_type='string')
+X_hashed = hasher.transform(data['category'])
+```
+
+### Weight of Evidence (WoE) Encoding
+
+Particularly useful for binary classification problems:
+
+```python
+def woe_encoding(X, y, column):
+    """
+    Calculate Weight of Evidence encoding
+    """
+    def calculate_woe(pos, neg):
+        return np.log((pos + 0.5) / (neg + 0.5))
+    
+    groups = pd.DataFrame({
+        'total': X[column].value_counts(),
+        'pos': X[column][y == 1].value_counts(),
+        'neg': X[column][y == 0].value_counts()
+    }).fillna(0)
+    
+    groups['woe'] = calculate_woe(
+        groups['pos'] / y.sum(),
+        groups['neg'] / (len(y) - y.sum())
+    )
+    return groups['woe']
+```
+
+## Best Practices
+
+1. **Handle Missing Values First**
+```python
+# Handle missing values before encoding
+data[column].fillna('MISSING', inplace=True)
+```
+
+2. **Dealing with New Categories**
+```python
+# Handle unknown categories in test data
+encoder = OneHotEncoder(handle_unknown='ignore')
+```
+
+3. **Memory Efficiency**
+```python
+# Use sparse matrices for high-dimensional data
+encoder = OneHotEncoder(sparse=True)
+```
+
+4. **Feature Combinations**
+```python
+# Creating interaction features
+data['combined'] = data['feature1'] + '_' + data['feature2']
+```
+
+## Common Pitfalls and Solutions
+
+1. **High Cardinality**
+   - Use frequency encoding
+   - Apply target encoding
+   - Consider feature hashing
+
+2. **Data Leakage**
+   - Use k-fold cross-validation for target encoding
+   - Apply encoding separately for train/test splits
+
+3. **Rare Categories**
+   - Group rare categories
+   - Use smoothing in target encoding
+
+```python
+# Example of grouping rare categories
+def group_rare_categories(data, column, threshold=0.01):
+    counts = data[column].value_counts(normalize=True)
+    rare_categories = counts[counts < threshold].index
+    data[column] = data[column].replace(
+        rare_categories, 'RARE'
+    )
+    return data
+``` 

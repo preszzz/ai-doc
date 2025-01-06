@@ -1,0 +1,256 @@
+---
+title: "Bagging (Bootstrap Aggregating)"
+description: "Bagging is an ensemble learning method that creates multiple versions of a predictor and combines them through averaging or voting. This section covers the theory and implementation of bagging methods."
+---
+
+## Theoretical Foundation
+
+### 1. Bootstrap Sampling
+- Random sampling with replacement
+- Sample size equal to original dataset
+- Approximately 63.2% unique samples per bootstrap
+
+## Implementation
+
+### 1. Basic Bagging Classifier
+```python
+from sklearn.ensemble import BaggingClassifier
+from sklearn.tree import DecisionTreeClassifier
+import numpy as np
+
+def create_bagging_classifier(
+    base_estimator=None,
+    n_estimators=10,
+    max_samples=1.0,
+    max_features=1.0,
+    bootstrap=True,
+    bootstrap_features=False
+):
+    """Create a bagging classifier with specified parameters"""
+    if base_estimator is None:
+        base_estimator = DecisionTreeClassifier()
+    
+    bagging = BaggingClassifier(
+        base_estimator=base_estimator,
+        n_estimators=n_estimators,
+        max_samples=max_samples,
+        max_features=max_features,
+        bootstrap=bootstrap,
+        bootstrap_features=bootstrap_features,
+        n_jobs=-1
+    )
+    
+    return bagging
+```
+
+### 2. Custom Bagging Implementation
+```python
+class CustomBagging:
+    def __init__(self, base_estimator, n_estimators=10, max_samples=1.0):
+        """Initialize custom bagging ensemble"""
+        self.base_estimator = base_estimator
+        self.n_estimators = n_estimators
+        self.max_samples = max_samples
+        self.estimators_ = []
+    
+    def _bootstrap_sample(self, X, y):
+        """Create a bootstrap sample"""
+        n_samples = int(len(X) * self.max_samples)
+        indices = np.random.choice(len(X), size=n_samples, replace=True)
+        return X[indices], y[indices]
+    
+    def fit(self, X, y):
+        """Fit the bagging ensemble"""
+        self.estimators_ = []
+        
+        for _ in range(self.n_estimators):
+            # Create bootstrap sample
+            X_boot, y_boot = self._bootstrap_sample(X, y)
+            
+            # Create and train new estimator
+            estimator = clone(self.base_estimator)
+            estimator.fit(X_boot, y_boot)
+            self.estimators_.append(estimator)
+        
+        return self
+    
+    def predict(self, X):
+        """Make predictions using majority voting"""
+        predictions = np.array([est.predict(X) for est in self.estimators_])
+        return np.apply_along_axis(
+            lambda x: np.bincount(x).argmax(),
+            axis=0,
+            arr=predictions
+        )
+    
+    def predict_proba(self, X):
+        """Make probability predictions"""
+        probas = np.array([est.predict_proba(X) for est in self.estimators_])
+        return np.mean(probas, axis=0)
+```
+
+## Advanced Techniques
+
+### 1. Random Subspace Method
+```python
+def random_subspace_ensemble(
+    base_estimator,
+    n_estimators=10,
+    max_features=0.5,
+    random_state=None
+):
+    """Create a random subspace ensemble"""
+    n_features = X.shape[1]
+    n_subspace_features = int(max_features * n_features)
+    
+    estimators = []
+    feature_indices = []
+    
+    for _ in range(n_estimators):
+        # Select random feature subset
+        features = np.random.choice(
+            n_features,
+            size=n_subspace_features,
+            replace=False
+        )
+        feature_indices.append(features)
+        
+        # Train estimator on feature subset
+        estimator = clone(base_estimator)
+        estimator.fit(X[:, features], y)
+        estimators.append(estimator)
+    
+    return estimators, feature_indices
+```
+
+### 2. Out-of-Bag Estimation
+```python
+def compute_oob_score(bagging_classifier, X, y):
+    """Compute out-of-bag score for a bagging classifier"""
+    n_samples = len(X)
+    n_classes = len(np.unique(y))
+    
+    # Initialize arrays for OOB predictions
+    oob_predictions = np.zeros((n_samples, n_classes))
+    n_predictions = np.zeros(n_samples)
+    
+    # Compute OOB predictions
+    for estimator, samples in zip(
+        bagging_classifier.estimators_,
+        bagging_classifier.estimators_samples_
+    ):
+        # OOB samples for this estimator
+        oob_mask = ~samples
+        
+        if not np.any(oob_mask):
+            continue
+        
+        # Predict for OOB samples
+        pred = estimator.predict_proba(X[oob_mask])
+        oob_predictions[oob_mask] += pred
+        n_predictions[oob_mask] += 1
+    
+    # Compute final predictions
+    with np.errstate(divide='ignore', invalid='ignore'):
+        oob_predictions /= n_predictions[:, np.newaxis]
+    
+    # Compute OOB score
+    oob_score = accuracy_score(
+        y,
+        np.argmax(oob_predictions, axis=1)
+    )
+    
+    return oob_score
+```
+
+## Performance Analysis
+
+### 1. Diversity Analysis
+```python
+def analyze_bagging_diversity(bagging_classifier, X):
+    """Analyze diversity among bagging ensemble members"""
+    predictions = []
+    for estimator in bagging_classifier.estimators_:
+        pred = estimator.predict(X)
+        predictions.append(pred)
+    
+    # Compute pairwise disagreement
+    n_estimators = len(predictions)
+    diversity_matrix = np.zeros((n_estimators, n_estimators))
+    
+    for i in range(n_estimators):
+        for j in range(i + 1, n_estimators):
+            disagreement = np.mean(predictions[i] != predictions[j])
+            diversity_matrix[i, j] = disagreement
+            diversity_matrix[j, i] = disagreement
+    
+    return diversity_matrix
+```
+
+### 2. Learning Curves
+```python
+def plot_bagging_learning_curves(
+    base_estimator,
+    X,
+    y,
+    n_estimators_range=range(1, 51, 5)
+):
+    """Plot learning curves for bagging ensemble"""
+    train_scores = []
+    val_scores = []
+    
+    for n_estimators in n_estimators_range:
+        bagging = BaggingClassifier(
+            base_estimator=base_estimator,
+            n_estimators=n_estimators
+        )
+        
+        scores = cross_validate(
+            bagging,
+            X,
+            y,
+            cv=5,
+            scoring='accuracy',
+            return_train_score=True
+        )
+        
+        train_scores.append(scores['train_score'].mean())
+        val_scores.append(scores['test_score'].mean())
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(n_estimators_range, train_scores, label='Training Score')
+    plt.plot(n_estimators_range, val_scores, label='Validation Score')
+    plt.xlabel('Number of Estimators')
+    plt.ylabel('Score')
+    plt.title('Bagging Learning Curves')
+    plt.legend()
+    plt.grid(True)
+    
+    return plt.gcf()
+```
+
+## Best Practices
+
+### 1. Model Selection
+- Choose appropriate base estimator
+- Consider problem characteristics
+- Balance model complexity
+- Evaluate computational cost
+
+### 2. Parameter Tuning
+- Optimize number of estimators
+- Adjust sample size
+- Consider feature sampling
+- Use cross-validation
+
+### 3. Implementation Tips
+- Use parallel processing
+- Monitor memory usage
+- Implement early stopping
+- Consider OOB estimates
+
+### 4. Common Pitfalls
+- Overfitting with complex base models
+- Insufficient number of estimators
+- Ignoring feature importance
+- Not validating OOB estimates 

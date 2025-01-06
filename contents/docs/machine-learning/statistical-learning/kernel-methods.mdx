@@ -1,0 +1,283 @@
+---
+title: "Kernel Methods"
+description: "Kernel methods are a class of algorithms for pattern analysis that allow us to extend linear methods to nonlinear settings through the kernel trick. They are fundamental to many machine learning algorithms, including SVMs, kernel PCA, and kernel regression."
+---
+
+## Theoretical Foundations
+
+### The Kernel Trick
+
+1. **Feature Space Mapping**
+   - Original space: $\mathcal{X}$ → Feature space: $\mathcal{F}$
+   - Mapping function: $\phi: \mathcal{X} \rightarrow \mathcal{F}$
+   - Kernel function: $K(x, y) = \langle \phi(x), \phi(y) \rangle$
+
+2. **Mercer's Theorem**
+   A kernel function $K(x, y)$ is valid if and only if it is:
+   - Symmetric: $K(x, y) = K(y, x)$
+   - Positive semi-definite: $\sum_{i,j} c_i c_j K(x_i, x_j) \geq 0$ for all $c_i \in \mathbb{R}$
+
+## Common Kernel Functions
+
+### Implementation and Analysis
+```python
+import numpy as np
+from scipy.spatial.distance import cdist
+
+class KernelFunctions:
+    @staticmethod
+    def linear_kernel(X1, X2, c=0):
+        """Linear kernel: K(x,y) = x^T y + c"""
+        return np.dot(X1, X2.T) + c
+    
+    @staticmethod
+    def polynomial_kernel(X1, X2, degree=2, gamma=1, c=0):
+        """Polynomial kernel: K(x,y) = (γx^T y + c)^d"""
+        return (gamma * np.dot(X1, X2.T) + c) ** degree
+    
+    @staticmethod
+    def rbf_kernel(X1, X2, gamma=1):
+        """RBF (Gaussian) kernel: K(x,y) = exp(-γ||x-y||^2)"""
+        pairwise_dists = cdist(X1, X2, 'sqeuclidean')
+        return np.exp(-gamma * pairwise_dists)
+    
+    @staticmethod
+    def sigmoid_kernel(X1, X2, gamma=1, c=0):
+        """Sigmoid kernel: K(x,y) = tanh(γx^T y + c)"""
+        return np.tanh(gamma * np.dot(X1, X2.T) + c)
+
+# Example usage and visualization
+def visualize_kernel_transformations():
+    # Generate sample data
+    np.random.seed(42)
+    X = np.random.randn(100, 2)
+    
+    kernels = {
+        'Linear': lambda X1, X2: KernelFunctions.linear_kernel(X1, X2),
+        'Polynomial': lambda X1, X2: KernelFunctions.polynomial_kernel(X1, X2, degree=3),
+        'RBF': lambda X1, X2: KernelFunctions.rbf_kernel(X1, X2, gamma=0.5),
+        'Sigmoid': lambda X1, X2: KernelFunctions.sigmoid_kernel(X1, X2, gamma=0.5)
+    }
+    
+    fig, axes = plt.subplots(2, 2, figsize=(15, 15))
+    axes = axes.ravel()
+    
+    for idx, (name, kernel_func) in enumerate(kernels.items()):
+        # Compute kernel matrix
+        K = kernel_func(X, X)
+        
+        # Plot kernel matrix
+        im = axes[idx].imshow(K, cmap='viridis')
+        axes[idx].set_title(f'{name} Kernel Matrix')
+        plt.colorbar(im, ax=axes[idx])
+    
+    plt.tight_layout()
+    return fig
+```
+
+## Kernel Principal Component Analysis (KPCA)
+
+### Mathematical Foundation
+1. **Centering in Feature Space**
+   ```latex
+   \tilde{K} = K - 1_N K - K 1_N + 1_N K 1_N
+   ```
+   where $1_N$ is the $N \times N$ matrix with all entries $1/N$
+
+2. **Eigendecomposition**
+   ```latex
+   \lambda \alpha = \tilde{K} \alpha
+   ```
+   where $\lambda$ are eigenvalues and $\alpha$ are eigenvectors
+
+### Implementation
+```python
+class KernelPCA:
+    def __init__(self, n_components=2, kernel='rbf', gamma=1.0):
+        self.n_components = n_components
+        self.kernel = kernel
+        self.gamma = gamma
+        self.alphas = None
+        self.lambdas = None
+        self.X_fit = None
+        
+    def _get_kernel(self, X1, X2=None):
+        if X2 is None:
+            X2 = X1
+            
+        if self.kernel == 'rbf':
+            return KernelFunctions.rbf_kernel(X1, X2, self.gamma)
+        elif self.kernel == 'polynomial':
+            return KernelFunctions.polynomial_kernel(X1, X2, gamma=self.gamma)
+        elif self.kernel == 'linear':
+            return KernelFunctions.linear_kernel(X1, X2)
+        
+    def fit_transform(self, X):
+        """Fit KPCA and transform data"""
+        n_samples = X.shape[0]
+        
+        # Compute kernel matrix
+        K = self._get_kernel(X)
+        
+        # Center kernel matrix
+        one_n = np.ones((n_samples, n_samples)) / n_samples
+        K_centered = K - one_n.dot(K) - K.dot(one_n) + one_n.dot(K).dot(one_n)
+        
+        # Eigendecomposition
+        eigenvals, eigenvecs = np.linalg.eigh(K_centered)
+        
+        # Sort eigenvectors in descending order
+        indices = np.argsort(eigenvals)[::-1]
+        eigenvals = eigenvals[indices]
+        eigenvecs = eigenvecs[:, indices]
+        
+        # Store top components
+        self.alphas = eigenvecs[:, :self.n_components]
+        self.lambdas = eigenvals[:self.n_components]
+        self.X_fit = X
+        
+        # Transform data
+        return np.column_stack([K_centered.dot(self.alphas[:, i]) / 
+                              np.sqrt(self.lambdas[i])
+                              for i in range(self.n_components)])
+    
+    def transform(self, X):
+        """Transform new data"""
+        K = self._get_kernel(X, self.X_fit)
+        return np.column_stack([K.dot(self.alphas[:, i]) / 
+                              np.sqrt(self.lambdas[i])
+                              for i in range(self.n_components)])
+```
+
+## Kernel Ridge Regression
+
+### Mathematical Formulation
+The objective function in feature space:
+```latex
+min_w ||Φ(X)w - y||^2 + λ||w||^2
+```
+
+The dual solution:
+```latex
+α = (K + λI)^{-1}y
+```
+
+### Implementation
+```python
+class KernelRidge:
+    def __init__(self, kernel='rbf', lambda_reg=1.0, gamma=1.0):
+        self.kernel = kernel
+        self.lambda_reg = lambda_reg
+        self.gamma = gamma
+        self.alpha = None
+        self.X_train = None
+        
+    def fit(self, X, y):
+        """Fit Kernel Ridge Regression"""
+        self.X_train = X
+        n_samples = X.shape[0]
+        
+        # Compute kernel matrix
+        K = self._get_kernel(X)
+        
+        # Solve for alpha
+        self.alpha = np.linalg.solve(
+            K + self.lambda_reg * np.eye(n_samples), y
+        )
+        
+        return self
+    
+    def predict(self, X):
+        """Make predictions"""
+        K = self._get_kernel(X, self.X_train)
+        return K.dot(self.alpha)
+```
+
+## Advanced Topics
+
+### 1. Multiple Kernel Learning
+```python
+class MultipleKernelLearning:
+    def __init__(self, kernels, C=1.0):
+        self.kernels = kernels
+        self.C = C
+        self.kernel_weights = None
+        
+    def fit(self, X, y):
+        """Optimize kernel weights"""
+        n_kernels = len(self.kernels)
+        n_samples = X.shape[0]
+        
+        # Initialize kernel weights
+        self.kernel_weights = np.ones(n_kernels) / n_kernels
+        
+        # Compute individual kernel matrices
+        K_matrices = [kernel(X) for kernel in self.kernels]
+        
+        # Gradient descent optimization
+        for _ in range(100):  # Simple iteration scheme
+            # Compute combined kernel
+            K = sum(w * K_i for w, K_i in zip(self.kernel_weights, K_matrices))
+            
+            # Update weights (simplified)
+            gradients = [np.sum(K_i * K) for K_i in K_matrices]
+            self.kernel_weights -= 0.01 * np.array(gradients)
+            self.kernel_weights = np.maximum(0, self.kernel_weights)
+            self.kernel_weights /= np.sum(self.kernel_weights)
+        
+        return self
+```
+
+### 2. Kernel Selection and Optimization
+```python
+def kernel_alignment_score(K1, K2):
+    """Compute kernel alignment between two kernel matrices"""
+    alignment = np.sum(K1 * K2)
+    norm1 = np.sqrt(np.sum(K1 * K1))
+    norm2 = np.sqrt(np.sum(K2 * K2))
+    
+    return alignment / (norm1 * norm2)
+
+def optimize_kernel_parameters(X, y, kernel_func, param_grid):
+    """Optimize kernel parameters using kernel alignment"""
+    y_kernel = np.outer(y, y)  # Target kernel
+    
+    best_score = -np.inf
+    best_params = None
+    
+    for params in param_grid:
+        K = kernel_func(X, **params)
+        score = kernel_alignment_score(K, y_kernel)
+        
+        if score > best_score:
+            best_score = score
+            best_params = params
+    
+    return best_params, best_score
+```
+
+## Best Practices
+
+1. **Kernel Selection**
+   - Choose based on data properties
+   - Consider computational complexity
+   - Validate using cross-validation
+   - Use kernel alignment scores
+
+2. **Parameter Tuning**
+   - Grid search for kernel parameters
+   - Consider multiple kernel learning
+   - Balance complexity and performance
+   - Use domain knowledge when available
+
+3. **Computational Efficiency**
+   - Use low-rank approximations
+   - Consider sparse kernel methods
+   - Implement efficient kernel computations
+   - Use GPU acceleration when possible
+
+4. **Validation and Testing**
+   - Check for overfitting
+   - Monitor numerical stability
+   - Validate on held-out data
+   - Use appropriate metrics 

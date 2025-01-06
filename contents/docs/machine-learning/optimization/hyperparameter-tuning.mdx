@@ -1,0 +1,362 @@
+---
+title: 'Hyperparameter Tuning'
+description: 'Systematic approaches to finding optimal hyperparameters for machine learning models'
+icon: 'tune'
+draft: false
+---
+
+Systematic approaches to finding optimal hyperparameters for machine learning models.
+
+## Grid Search
+
+### Basic Implementation
+
+```python
+from sklearn.model_selection import GridSearchCV
+
+def grid_search_cv(model, param_grid, X, y, cv=5):
+    # Initialize grid search
+    grid_search = GridSearchCV(
+        estimator=model,
+        param_grid=param_grid,
+        cv=cv,
+        n_jobs=-1,
+        verbose=1
+    )
+    
+    # Fit grid search
+    grid_search.fit(X, y)
+    
+    return {
+        'best_params': grid_search.best_params_,
+        'best_score': grid_search.best_score_,
+        'cv_results': grid_search.cv_results_
+    }
+```
+
+### Visualization
+
+```python
+def plot_grid_search_results(cv_results, param_name):
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        cv_results[f'param_{param_name}'],
+        cv_results['mean_test_score']
+    )
+    plt.fill_between(
+        cv_results[f'param_{param_name}'],
+        cv_results['mean_test_score'] - cv_results['std_test_score'],
+        cv_results['mean_test_score'] + cv_results['std_test_score'],
+        alpha=0.2
+    )
+    plt.xlabel(param_name)
+    plt.ylabel('CV Score')
+    plt.title(f'Grid Search Results for {param_name}')
+    return plt
+```
+
+## Random Search
+
+```python
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import uniform, randint
+
+def random_search_cv(model, param_distributions, X, y, n_iter=100, cv=5):
+    # Initialize random search
+    random_search = RandomizedSearchCV(
+        estimator=model,
+        param_distributions=param_distributions,
+        n_iter=n_iter,
+        cv=cv,
+        n_jobs=-1,
+        verbose=1
+    )
+    
+    # Fit random search
+    random_search.fit(X, y)
+    
+    return {
+        'best_params': random_search.best_params_,
+        'best_score': random_search.best_score_,
+        'cv_results': random_search.cv_results_
+    }
+```
+
+## Bayesian Optimization
+
+```python
+from skopt import BayesSearchCV
+from skopt.space import Real, Integer, Categorical
+
+def bayesian_optimization(model, search_spaces, X, y, n_iter=50, cv=5):
+    # Initialize Bayesian optimization
+    bayes_search = BayesSearchCV(
+        estimator=model,
+        search_spaces=search_spaces,
+        n_iter=n_iter,
+        cv=cv,
+        n_jobs=-1,
+        verbose=1
+    )
+    
+    # Fit Bayesian search
+    bayes_search.fit(X, y)
+    
+    return {
+        'best_params': bayes_search.best_params_,
+        'best_score': bayes_search.best_score_,
+        'cv_results': bayes_search.cv_results_
+    }
+```
+
+## Population-Based Methods
+
+### Genetic Algorithm
+
+```python
+class GeneticOptimizer:
+    def __init__(self, param_bounds, population_size=50):
+        self.param_bounds = param_bounds
+        self.population_size = population_size
+        
+    def initialize_population(self):
+        population = []
+        for _ in range(self.population_size):
+            individual = {
+                param: np.random.uniform(bounds[0], bounds[1])
+                for param, bounds in self.param_bounds.items()
+            }
+            population.append(individual)
+        return population
+    
+    def crossover(self, parent1, parent2):
+        child = {}
+        for param in self.param_bounds:
+            if np.random.random() < 0.5:
+                child[param] = parent1[param]
+            else:
+                child[param] = parent2[param]
+        return child
+    
+    def mutate(self, individual, mutation_rate=0.1):
+        mutated = individual.copy()
+        for param, bounds in self.param_bounds.items():
+            if np.random.random() < mutation_rate:
+                mutated[param] = np.random.uniform(bounds[0], bounds[1])
+        return mutated
+    
+    def optimize(self, fitness_func, n_generations=50):
+        population = self.initialize_population()
+        best_individual = None
+        best_fitness = float('-inf')
+        
+        for generation in range(n_generations):
+            # Evaluate fitness
+            fitness_scores = [
+                fitness_func(individual)
+                for individual in population
+            ]
+            
+            # Select best individuals
+            elite_size = self.population_size // 4
+            elite_indices = np.argsort(fitness_scores)[-elite_size:]
+            elite = [population[i] for i in elite_indices]
+            
+            # Create new population
+            new_population = elite.copy()
+            
+            while len(new_population) < self.population_size:
+                parent1 = np.random.choice(elite)
+                parent2 = np.random.choice(elite)
+                child = self.crossover(parent1, parent2)
+                child = self.mutate(child)
+                new_population.append(child)
+            
+            population = new_population
+            
+            # Update best individual
+            generation_best_idx = np.argmax(fitness_scores)
+            if fitness_scores[generation_best_idx] > best_fitness:
+                best_fitness = fitness_scores[generation_best_idx]
+                best_individual = population[generation_best_idx]
+        
+        return best_individual, best_fitness
+```
+
+## Hyperparameter Optimization Strategies
+
+### Sequential Model-Based Optimization
+
+```python
+from skopt import gp_minimize
+
+def smbo_optimization(objective_func, search_space, n_calls=50):
+    result = gp_minimize(
+        func=objective_func,
+        dimensions=search_space,
+        n_calls=n_calls,
+        noise=0.1,
+        n_jobs=-1
+    )
+    
+    return {
+        'best_params': result.x,
+        'best_score': result.fun,
+        'all_results': result
+    }
+```
+
+### Multi-Objective Optimization
+
+```python
+def pareto_optimization(model, param_grid, X, y, objectives):
+    results = []
+    
+    for params in ParameterGrid(param_grid):
+        model.set_params(**params)
+        model.fit(X, y)
+        
+        # Calculate multiple objectives
+        scores = {
+            name: objective(model, X, y)
+            for name, objective in objectives.items()
+        }
+        
+        results.append({
+            'params': params,
+            'scores': scores
+        })
+    
+    return results
+
+def is_pareto_efficient(scores):
+    is_efficient = np.ones(scores.shape[0], dtype=bool)
+    for i in range(scores.shape[0]):
+        for j in range(scores.shape[0]):
+            if all(scores[j] >= scores[i]) and any(scores[j] > scores[i]):
+                is_efficient[i] = False
+                break
+    return is_efficient
+```
+
+## Automated Hyperparameter Tuning
+
+### Early Stopping
+
+```python
+class EarlyStopping:
+    def __init__(self, patience=5, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+    
+    def __call__(self, val_loss):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+        elif val_loss > self.best_loss - self.min_delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_loss = val_loss
+            self.counter = 0
+```
+
+### Learning Rate Scheduling
+
+```python
+def cosine_annealing_with_restarts(initial_lr, T_max, T_mult=2):
+    """
+    Cosine annealing with warm restarts
+    """
+    def schedule(epoch):
+        epoch = epoch % T_max
+        return initial_lr * (1 + np.cos(np.pi * epoch / T_max)) / 2
+    return schedule
+```
+
+## Visualization and Analysis
+
+```python
+def plot_optimization_history(results):
+    plt.figure(figsize=(12, 4))
+    
+    # Plot optimization trajectory
+    plt.subplot(1, 2, 1)
+    plt.plot(results['mean_test_score'])
+    plt.xlabel('Iteration')
+    plt.ylabel('Score')
+    plt.title('Optimization History')
+    
+    # Plot parameter importance
+    plt.subplot(1, 2, 2)
+    importances = pd.DataFrame({
+        'parameter': results['params'].keys(),
+        'importance': results['feature_importances_']
+    })
+    importances.sort_values('importance').plot(
+        kind='barh',
+        x='parameter',
+        y='importance'
+    )
+    plt.title('Parameter Importance')
+    
+    return plt
+```
+
+## Best Practices
+
+1. **Search Space Definition**
+```python
+def define_search_space(model_type):
+    if model_type == 'random_forest':
+        return {
+            'n_estimators': randint(10, 500),
+            'max_depth': randint(3, 20),
+            'min_samples_split': randint(2, 20),
+            'min_samples_leaf': randint(1, 10)
+        }
+    elif model_type == 'xgboost':
+        return {
+            'learning_rate': uniform(0.01, 0.3),
+            'max_depth': randint(3, 10),
+            'n_estimators': randint(100, 1000),
+            'subsample': uniform(0.6, 0.4)
+        }
+```
+
+2. **Cross-Validation Strategy**
+```python
+def get_cv_strategy(problem_type, n_splits=5):
+    if problem_type == 'classification':
+        return StratifiedKFold(n_splits=n_splits)
+    elif problem_type == 'regression':
+        return KFold(n_splits=n_splits)
+    elif problem_type == 'time_series':
+        return TimeSeriesSplit(n_splits=n_splits)
+```
+
+3. **Resource Management**
+```python
+def optimize_with_resource_constraints(
+    model, param_grid, X, y,
+    max_time=3600, max_evals=100
+):
+    start_time = time.time()
+    results = []
+    
+    for i, params in enumerate(ParameterGrid(param_grid)):
+        if time.time() - start_time > max_time or i >= max_evals:
+            break
+            
+        model.set_params(**params)
+        score = cross_val_score(model, X, y).mean()
+        results.append({
+            'params': params,
+            'score': score
+        })
+    
+    return results
+``` 

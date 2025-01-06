@@ -1,0 +1,313 @@
+---
+title: 'Feature Selection'
+description: 'Feature selection is the process of selecting a subset of relevant features for model training. It helps reduce overfitting, improve model performance, and reduce training time.'
+icon: 'filter-list'
+draft: false
+---
+
+# Feature Selection
+
+Feature selection is the process of selecting a subset of relevant features for model training. It helps reduce overfitting, improve model performance, and reduce training time.
+
+## Filter Methods
+
+Filter methods evaluate features independently of the learning algorithm.
+
+### Correlation-based Selection
+
+```python
+import pandas as pd
+import numpy as np
+from scipy.stats import spearmanr
+
+def correlation_selector(X, y, threshold=0.5):
+    # Calculate correlations
+    correlations = []
+    features = X.columns
+    
+    for feature in features:
+        correlation = spearmanr(X[feature], y)[0]
+        correlations.append((feature, abs(correlation)))
+    
+    # Select features above threshold
+    selected = [feat for feat, corr in correlations if corr > threshold]
+    return selected, correlations
+
+```
+
+### Mutual Information
+
+Measures the mutual dependence between variables:
+
+```math
+I(X;Y) = \sum_{y \in Y} \sum_{x \in X} p(x,y) \log\left(\frac{p(x,y)}{p(x)p(y)}\right)
+```
+
+```python
+from sklearn.feature_selection import mutual_info_classif
+
+def mutual_info_selector(X, y, k=10):
+    # Calculate mutual information scores
+    mi_scores = mutual_info_classif(X, y)
+    
+    # Create feature ranking
+    feature_scores = pd.DataFrame({
+        'Feature': X.columns,
+        'MI_Score': mi_scores
+    }).sort_values('MI_Score', ascending=False)
+    
+    return feature_scores.head(k)
+```
+
+### Chi-Square Test
+
+For categorical features in classification problems:
+
+```python
+from sklearn.feature_selection import chi2, SelectKBest
+
+def chi_square_selector(X, y, k=10):
+    # Apply Chi-square test
+    selector = SelectKBest(score_func=chi2, k=k)
+    selector.fit(X, y)
+    
+    # Get selected features
+    selected_features = X.columns[selector.get_support()].tolist()
+    
+    # Get scores
+    scores = pd.DataFrame({
+        'Feature': X.columns,
+        'Chi2_Score': selector.scores_
+    }).sort_values('Chi2_Score', ascending=False)
+    
+    return selected_features, scores
+```
+
+## Wrapper Methods
+
+Wrapper methods use a specific machine learning algorithm to evaluate feature subsets.
+
+### Recursive Feature Elimination (RFE)
+
+```python
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+
+def rfe_selector(X, y, n_features):
+    # Initialize model
+    model = LogisticRegression()
+    
+    # Initialize RFE
+    rfe = RFE(estimator=model, n_features_to_select=n_features)
+    rfe.fit(X, y)
+    
+    # Get selected features
+    selected_features = X.columns[rfe.support_].tolist()
+    
+    # Get feature ranking
+    ranking = pd.DataFrame({
+        'Feature': X.columns,
+        'Rank': rfe.ranking_
+    }).sort_values('Rank')
+    
+    return selected_features, ranking
+```
+
+### Forward Selection
+
+```python
+from sklearn.model_selection import cross_val_score
+
+def forward_selection(X, y, model, k=10):
+    features = []
+    remaining = list(X.columns)
+    
+    for i in range(k):
+        best_score = -np.inf
+        best_feature = None
+        
+        # Try each remaining feature
+        for feature in remaining:
+            current = features + [feature]
+            score = cross_val_score(
+                model, X[current], y, cv=5
+            ).mean()
+            
+            if score > best_score:
+                best_score = score
+                best_feature = feature
+        
+        features.append(best_feature)
+        remaining.remove(best_feature)
+    
+    return features
+```
+
+## Embedded Methods
+
+### LASSO (L1 Regularization)
+
+Uses L1 penalty to force coefficients to zero:
+
+```math
+\min_{\beta} \|y - X\beta\|^2 + \lambda\|\beta\|_1
+```
+
+```python
+from sklearn.linear_model import Lasso
+
+def lasso_selector(X, y, alpha=1.0):
+    # Fit LASSO
+    lasso = Lasso(alpha=alpha)
+    lasso.fit(X, y)
+    
+    # Get selected features
+    selected = X.columns[lasso.coef_ != 0].tolist()
+    
+    # Get feature importance
+    importance = pd.DataFrame({
+        'Feature': X.columns,
+        'Coefficient': np.abs(lasso.coef_)
+    }).sort_values('Coefficient', ascending=False)
+    
+    return selected, importance
+```
+
+### Elastic Net
+
+Combines L1 and L2 regularization:
+
+```python
+from sklearn.linear_model import ElasticNet
+
+def elastic_net_selector(X, y, alpha=1.0, l1_ratio=0.5):
+    # Fit Elastic Net
+    en = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
+    en.fit(X, y)
+    
+    # Get selected features
+    selected = X.columns[en.coef_ != 0].tolist()
+    
+    return selected, en.coef_
+```
+
+## Tree-based Feature Importance
+
+### Random Forest Importance
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+import matplotlib.pyplot as plt
+
+def rf_feature_importance(X, y):
+    # Train Random Forest
+    rf = RandomForestClassifier(n_estimators=100)
+    rf.fit(X, y)
+    
+    # Get feature importance
+    importance = pd.DataFrame({
+        'Feature': X.columns,
+        'Importance': rf.feature_importances_
+    }).sort_values('Importance', ascending=False)
+    
+    # Visualize importance
+    plt.figure(figsize=(10, 6))
+    plt.bar(importance['Feature'], importance['Importance'])
+    plt.xticks(rotation=45)
+    plt.title('Random Forest Feature Importance')
+    plt.tight_layout()
+    
+    return importance
+```
+
+## Advanced Techniques
+
+### Stability Selection
+
+```python
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils import resample
+
+def stability_selection(X, y, n_iterations=100, threshold=0.5):
+    selected_features = {feature: 0 for feature in X.columns}
+    scaler = StandardScaler()
+    
+    for i in range(n_iterations):
+        # Bootstrap sample
+        X_sample, y_sample = resample(X, y)
+        
+        # Scale features
+        X_scaled = scaler.fit_transform(X_sample)
+        
+        # Fit model with L1 regularization
+        model = LogisticRegression(penalty='l1', solver='liblinear')
+        model.fit(X_scaled, y_sample)
+        
+        # Count selected features
+        for feature, coef in zip(X.columns, model.coef_[0]):
+            if abs(coef) > 0:
+                selected_features[feature] += 1
+    
+    # Calculate selection probability
+    selection_probability = {
+        feature: count/n_iterations 
+        for feature, count in selected_features.items()
+    }
+    
+    # Select stable features
+    stable_features = [
+        feature 
+        for feature, prob in selection_probability.items() 
+        if prob > threshold
+    ]
+    
+    return stable_features, selection_probability
+```
+
+## Best Practices
+
+1. **Cross-Validation**
+```python
+def cross_validated_selection(X, y, selector, cv=5):
+    from sklearn.model_selection import KFold
+    
+    kf = KFold(n_splits=cv, shuffle=True)
+    selected_features = []
+    
+    for train_idx, val_idx in kf.split(X):
+        X_train, y_train = X.iloc[train_idx], y.iloc[train_idx]
+        features = selector(X_train, y_train)
+        selected_features.append(features)
+    
+    return selected_features
+```
+
+2. **Feature Selection Pipeline**
+```python
+from sklearn.pipeline import Pipeline
+
+def feature_selection_pipeline(X, y):
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('selector', SelectKBest(k=10)),
+        ('classifier', RandomForestClassifier())
+    ])
+    
+    return pipeline.fit(X, y)
+```
+
+3. **Evaluation Metrics**
+```python
+def evaluate_feature_subset(X, y, features, model):
+    # Train with selected features
+    scores = cross_val_score(
+        model, X[features], y, cv=5, 
+        scoring='accuracy'
+    )
+    
+    return {
+        'mean_score': scores.mean(),
+        'std_score': scores.std(),
+        'n_features': len(features)
+    } 
