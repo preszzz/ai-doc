@@ -8,34 +8,11 @@ import rehypePrism from "rehype-prism-plus";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeSlug from "rehype-slug";
 import rehypeCodeTitles from "rehype-code-titles";
-import { page_routes } from "./routes-config";
-import ROUTES from "@/utils/routes-map";
 import { visit } from "unist-util-visit";
 import matter from "gray-matter";
-
-// custom components imports
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Pre from "@/components/markdown/pre";
-import Note from "@/components/markdown/note";
-import { Stepper, StepperItem } from "@/components/markdown/stepper";
-import Image from "@/components/markdown/image";
-import Link from "@/components/markdown/link";
-import Outlet from "@/components/markdown/outlet";
-
-// add custom components
-const components = {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  pre: Pre,
-  Note,
-  Stepper,
-  StepperItem,
-  img: Image,
-  a: Link,
-  Outlet,
-};
+import ROUTES from "@/utils/routes-map";
+import { page_routes } from "./routes-config";
+import { components } from "@/utils/components";
 
 // can be used for other pages like blogs, Guides etc
 async function parseMdx<Frontmatter>(rawMdx: string) {
@@ -47,10 +24,10 @@ async function parseMdx<Frontmatter>(rawMdx: string) {
         rehypePlugins: [
           preProcess,
           rehypeCodeTitles,
+          rehypeKatex,
           rehypePrism,
           rehypeSlug,
           rehypeAutolinkHeadings,
-          rehypeKatex,
           postProcess,
         ],
         remarkPlugins: [
@@ -160,19 +137,7 @@ const preProcess = () => (tree: any) => {
     if (node?.type === "element" && node?.tagName === "pre") {
       const [codeEl] = node.children;
       if (codeEl.tagName !== "code") return;
-      
-      // Check if this is actually a math block
-      if (codeEl.properties?.className?.includes("language-math")) {
-        // Convert it to a math display block
-        node.properties = { className: ["math", "math-display"] };
-        node.children = [{
-          type: "text",
-          value: codeEl.children?.[0].value
-        }];
-      } else {
-        // Regular code block processing
-        node.raw = codeEl.children?.[0].value;
-      }
+      node.raw = codeEl.children?.[0].value;
     }
   });
 };
