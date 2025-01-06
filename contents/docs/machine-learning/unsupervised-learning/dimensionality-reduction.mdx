@@ -1,0 +1,356 @@
+---
+title: "Dimensionality Reduction"
+description: "This section covers various dimensionality reduction techniques and their implementation in machine learning."
+---
+
+## Linear Methods
+
+### 1. Principal Component Analysis (PCA)
+```python
+from sklearn.decomposition import PCA
+import numpy as np
+import matplotlib.pyplot as plt
+
+class PCAReducer:
+    def __init__(
+        self,
+        n_components=None,
+        **kwargs
+    ):
+        """Initialize PCA reducer"""
+        self.n_components = n_components
+        self.model = PCA(n_components=n_components, **kwargs)
+    
+    def fit(self, X):
+        """Fit PCA model"""
+        self.model.fit(X)
+        return self
+    
+    def transform(self, X):
+        """Transform data"""
+        return self.model.transform(X)
+    
+    def fit_transform(self, X):
+        """Fit and transform data"""
+        return self.model.fit_transform(X)
+    
+    def inverse_transform(self, X):
+        """Inverse transform data"""
+        return self.model.inverse_transform(X)
+    
+    def plot_explained_variance(self):
+        """Plot explained variance ratio"""
+        plt.figure(figsize=(10, 6))
+        
+        # Cumulative explained variance
+        plt.plot(
+            np.cumsum(self.model.explained_variance_ratio_),
+            'bo-',
+            label='Cumulative'
+        )
+        
+        # Individual explained variance
+        plt.plot(
+            self.model.explained_variance_ratio_,
+            'ro-',
+            label='Individual'
+        )
+        
+        plt.xlabel('Number of Components')
+        plt.ylabel('Explained Variance Ratio')
+        plt.title('PCA Explained Variance')
+        plt.legend()
+        plt.grid(True)
+        return plt.gcf()
+    
+    def plot_components(self, feature_names=None):
+        """Plot component loadings"""
+        n_components = self.model.components_.shape[0]
+        
+        plt.figure(figsize=(12, 8))
+        plt.imshow(
+            self.model.components_,
+            cmap='coolwarm',
+            aspect='auto'
+        )
+        plt.colorbar()
+        
+        if feature_names is not None:
+            plt.yticks(
+                range(n_components),
+                [f'PC{i+1}' for i in range(n_components)]
+            )
+            plt.xticks(
+                range(len(feature_names)),
+                feature_names,
+                rotation=45,
+                ha='right'
+            )
+        
+        plt.title('PCA Components')
+        plt.tight_layout()
+        return plt.gcf()
+```
+
+### 2. Linear Discriminant Analysis (LDA)
+```python
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+class LDAReducer:
+    def __init__(
+        self,
+        n_components=None,
+        **kwargs
+    ):
+        """Initialize LDA reducer"""
+        self.n_components = n_components
+        self.model = LinearDiscriminantAnalysis(
+            n_components=n_components,
+            **kwargs
+        )
+    
+    def fit(self, X, y):
+        """Fit LDA model"""
+        self.model.fit(X, y)
+        return self
+    
+    def transform(self, X):
+        """Transform data"""
+        return self.model.transform(X)
+    
+    def fit_transform(self, X, y):
+        """Fit and transform data"""
+        return self.model.fit_transform(X, y)
+```
+
+## Non-linear Methods
+
+### 1. t-SNE
+```python
+from sklearn.manifold import TSNE
+
+class TSNEReducer:
+    def __init__(
+        self,
+        n_components=2,
+        **kwargs
+    ):
+        """Initialize t-SNE reducer"""
+        self.n_components = n_components
+        self.model = TSNE(
+            n_components=n_components,
+            **kwargs
+        )
+    
+    def fit_transform(self, X):
+        """Fit and transform data"""
+        return self.model.fit_transform(X)
+    
+    def plot_embedding(self, X, labels=None, title=None):
+        """Plot t-SNE embedding"""
+        embedding = self.fit_transform(X)
+        
+        plt.figure(figsize=(10, 6))
+        scatter = plt.scatter(
+            embedding[:, 0],
+            embedding[:, 1],
+            c=labels,
+            cmap='viridis' if labels is not None else None
+        )
+        
+        if labels is not None:
+            plt.colorbar(scatter)
+        
+        plt.title(title or 't-SNE Embedding')
+        return plt.gcf()
+```
+
+### 2. UMAP
+```python
+import umap
+
+class UMAPReducer:
+    def __init__(
+        self,
+        n_components=2,
+        **kwargs
+    ):
+        """Initialize UMAP reducer"""
+        self.n_components = n_components
+        self.model = umap.UMAP(
+            n_components=n_components,
+            **kwargs
+        )
+    
+    def fit(self, X):
+        """Fit UMAP model"""
+        self.model.fit(X)
+        return self
+    
+    def transform(self, X):
+        """Transform data"""
+        return self.model.transform(X)
+    
+    def fit_transform(self, X):
+        """Fit and transform data"""
+        return self.model.fit_transform(X)
+    
+    def plot_embedding(self, X, labels=None, title=None):
+        """Plot UMAP embedding"""
+        embedding = self.fit_transform(X)
+        
+        plt.figure(figsize=(10, 6))
+        scatter = plt.scatter(
+            embedding[:, 0],
+            embedding[:, 1],
+            c=labels,
+            cmap='viridis' if labels is not None else None
+        )
+        
+        if labels is not None:
+            plt.colorbar(scatter)
+        
+        plt.title(title or 'UMAP Embedding')
+        return plt.gcf()
+```
+
+## Autoencoder-based Methods
+
+### 1. Simple Autoencoder
+```python
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+class Autoencoder:
+    def __init__(
+        self,
+        input_dim,
+        encoding_dim,
+        hidden_layers=None
+    ):
+        """Initialize autoencoder"""
+        self.input_dim = input_dim
+        self.encoding_dim = encoding_dim
+        self.hidden_layers = hidden_layers or []
+        
+        self.encoder = self._build_encoder()
+        self.decoder = self._build_decoder()
+        self.model = self._build_autoencoder()
+    
+    def _build_encoder(self):
+        """Build encoder model"""
+        encoder = models.Sequential()
+        encoder.add(layers.Input(shape=(self.input_dim,)))
+        
+        # Add hidden layers
+        for units in self.hidden_layers:
+            encoder.add(layers.Dense(units, activation='relu'))
+        
+        # Add bottleneck layer
+        encoder.add(layers.Dense(self.encoding_dim, activation='relu'))
+        
+        return encoder
+    
+    def _build_decoder(self):
+        """Build decoder model"""
+        decoder = models.Sequential()
+        decoder.add(layers.Input(shape=(self.encoding_dim,)))
+        
+        # Add hidden layers in reverse
+        for units in reversed(self.hidden_layers):
+            decoder.add(layers.Dense(units, activation='relu'))
+        
+        # Add output layer
+        decoder.add(layers.Dense(self.input_dim, activation='sigmoid'))
+        
+        return decoder
+    
+    def _build_autoencoder(self):
+        """Build complete autoencoder"""
+        inputs = layers.Input(shape=(self.input_dim,))
+        encoded = self.encoder(inputs)
+        decoded = self.decoder(encoded)
+        
+        return models.Model(inputs, decoded)
+    
+    def compile(self, **kwargs):
+        """Compile model"""
+        self.model.compile(**kwargs)
+    
+    def fit(self, X, **kwargs):
+        """Train autoencoder"""
+        return self.model.fit(X, X, **kwargs)
+    
+    def encode(self, X):
+        """Encode data"""
+        return self.encoder.predict(X)
+    
+    def decode(self, X):
+        """Decode data"""
+        return self.decoder.predict(X)
+    
+    def plot_reconstruction(self, X, n_samples=5):
+        """Plot original vs reconstructed samples"""
+        # Get reconstructions
+        reconstructed = self.model.predict(X)
+        
+        plt.figure(figsize=(15, 5))
+        for i in range(n_samples):
+            # Original
+            plt.subplot(2, n_samples, i + 1)
+            plt.plot(X[i])
+            plt.title('Original')
+            
+            # Reconstructed
+            plt.subplot(2, n_samples, n_samples + i + 1)
+            plt.plot(reconstructed[i])
+            plt.title('Reconstructed')
+        
+        plt.tight_layout()
+        return plt.gcf()
+```
+
+## Model Evaluation
+
+### 1. Reconstruction Error
+```python
+def compute_reconstruction_error(X, X_reconstructed):
+    """Compute reconstruction error"""
+    return np.mean(np.square(X - X_reconstructed))
+
+def plot_reconstruction_error(errors):
+    """Plot reconstruction error"""
+    plt.figure(figsize=(10, 6))
+    plt.plot(errors)
+    plt.xlabel('Iteration')
+    plt.ylabel('Reconstruction Error')
+    plt.title('Reconstruction Error Over Time')
+    plt.grid(True)
+    return plt.gcf()
+```
+
+## Best Practices
+
+### 1. Data Preparation
+- Scale features appropriately
+- Handle missing values
+- Remove outliers if necessary
+- Consider feature selection
+
+### 2. Algorithm Selection
+- Consider data characteristics
+- Evaluate computational requirements
+- Test multiple methods
+- Validate results
+
+### 3. Parameter Tuning
+- Choose appropriate dimensions
+- Consider perplexity (t-SNE)
+- Adjust learning parameters
+- Monitor convergence
+
+### 4. Evaluation
+- Use multiple metrics
+- Visualize results
+- Consider interpretability
+- Validate with domain experts 

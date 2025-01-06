@@ -1,0 +1,304 @@
+---
+title: 'Classification'
+description: 'Understanding and implementing classification algorithms in machine learning'
+icon: 'category'
+draft: false
+---
+
+Classification is a supervised learning task where the goal is to predict discrete class labels for input data.
+
+## Binary Classification
+
+### Logistic Regression
+
+The fundamental classification algorithm using the logistic function:
+
+```math
+P(y=1|x) = \frac{1}{1 + e^{-(\beta_0 + \beta^T x)}}
+```
+
+```python
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+
+def train_logistic_regression(X_train, y_train):
+    # Initialize and train model
+    model = LogisticRegression(
+        penalty='l2',
+        C=1.0,
+        solver='lbfgs',
+        max_iter=1000
+    )
+    model.fit(X_train, y_train)
+    
+    return model
+
+def get_decision_boundary(model, X):
+    # Get decision boundary
+    weights = model.coef_[0]
+    bias = model.intercept_[0]
+    
+    # For 2D visualization
+    x1 = np.linspace(X[:, 0].min(), X[:, 0].max(), 100)
+    x2 = -(weights[0] * x1 + bias) / weights[1]
+    
+    return x1, x2
+```
+
+### Support Vector Machines (SVM)
+
+Finding the optimal hyperplane that maximizes the margin between classes:
+
+```math
+\min_{w,b} \frac{1}{2}\|w\|^2 + C\sum_{i=1}^n \max(0, 1-y_i(w^Tx_i + b))
+```
+
+```python
+from sklearn.svm import SVC
+
+def train_svm(X_train, y_train, kernel='rbf'):
+    # Initialize and train SVM
+    model = SVC(
+        kernel=kernel,
+        C=1.0,
+        probability=True
+    )
+    model.fit(X_train, y_train)
+    
+    return model
+
+def plot_svm_decision_boundary(model, X):
+    # Create mesh grid
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(
+        np.arange(x_min, x_max, 0.02),
+        np.arange(y_min, y_max, 0.02)
+    )
+    
+    # Get predictions
+    Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+    
+    return xx, yy, Z
+```
+
+## Multi-class Classification
+
+### One-vs-Rest (OvR)
+
+```python
+from sklearn.multiclass import OneVsRestClassifier
+
+def train_ovr_classifier(X_train, y_train, base_classifier):
+    # Initialize and train OvR classifier
+    model = OneVsRestClassifier(base_classifier)
+    model.fit(X_train, y_train)
+    
+    return model
+```
+
+### One-vs-One (OvO)
+
+```python
+from sklearn.multiclass import OneVsOneClassifier
+
+def train_ovo_classifier(X_train, y_train, base_classifier):
+    # Initialize and train OvO classifier
+    model = OneVsOneClassifier(base_classifier)
+    model.fit(X_train, y_train)
+    
+    return model
+```
+
+## Decision Trees
+
+Hierarchical structure making decisions based on feature values:
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+import graphviz
+
+def train_decision_tree(X_train, y_train, max_depth=5):
+    # Initialize and train decision tree
+    model = DecisionTreeClassifier(
+        max_depth=max_depth,
+        criterion='gini'
+    )
+    model.fit(X_train, y_train)
+    
+    return model
+
+def visualize_tree(model, feature_names):
+    # Create tree visualization
+    dot_data = export_graphviz(
+        model,
+        feature_names=feature_names,
+        filled=True,
+        rounded=True
+    )
+    graph = graphviz.Source(dot_data)
+    return graph
+```
+
+## Evaluation Metrics
+
+### Classification Metrics
+
+```python
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    confusion_matrix
+)
+
+def evaluate_classifier(y_true, y_pred, y_prob=None):
+    metrics = {
+        'accuracy': accuracy_score(y_true, y_pred),
+        'precision': precision_score(y_true, y_pred, average='weighted'),
+        'recall': recall_score(y_true, y_pred, average='weighted'),
+        'f1': f1_score(y_true, y_pred, average='weighted')
+    }
+    
+    if y_prob is not None:
+        metrics['auc_roc'] = roc_auc_score(y_true, y_prob)
+    
+    return metrics
+```
+
+### ROC Curve
+
+```python
+from sklearn.metrics import roc_curve
+import matplotlib.pyplot as plt
+
+def plot_roc_curve(y_true, y_prob):
+    # Calculate ROC curve
+    fpr, tpr, _ = roc_curve(y_true, y_prob)
+    
+    # Plot curve
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr)
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    
+    return plt
+```
+
+## Handling Imbalanced Data
+
+### SMOTE (Synthetic Minority Over-sampling Technique)
+
+```python
+from imblearn.over_sampling import SMOTE
+
+def balance_dataset(X, y):
+    # Initialize SMOTE
+    smote = SMOTE(random_state=42)
+    
+    # Resample dataset
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+    
+    return X_resampled, y_resampled
+```
+
+### Class Weights
+
+```python
+def calculate_class_weights(y):
+    # Calculate class weights
+    class_weights = dict(
+        zip(
+            np.unique(y),
+            compute_class_weight('balanced', classes=np.unique(y), y=y)
+        )
+    )
+    
+    return class_weights
+```
+
+## Ensemble Methods
+
+### Random Forest
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+
+def train_random_forest(X_train, y_train):
+    # Initialize and train random forest
+    model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1
+    )
+    model.fit(X_train, y_train)
+    
+    return model
+
+def get_feature_importance(model, feature_names):
+    # Get feature importance
+    importance = pd.DataFrame({
+        'feature': feature_names,
+        'importance': model.feature_importances_
+    }).sort_values('importance', ascending=False)
+    
+    return importance
+```
+
+## Best Practices
+
+1. **Data Preprocessing**
+```python
+def preprocess_for_classification(X, y):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    X = imputer.fit_transform(X)
+    
+    # Scale features
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+    
+    # Encode labels if needed
+    encoder = LabelEncoder()
+    y = encoder.fit_transform(y)
+    
+    return X, y
+```
+
+2. **Model Selection**
+```python
+def select_best_classifier(X, y, classifiers):
+    results = {}
+    
+    for name, clf in classifiers.items():
+        # Perform cross-validation
+        scores = cross_val_score(clf, X, y, cv=5)
+        results[name] = {
+            'mean_score': scores.mean(),
+            'std_score': scores.std()
+        }
+    
+    return results
+```
+
+3. **Hyperparameter Tuning**
+```python
+def tune_classifier(model, param_grid, X, y):
+    # Perform grid search
+    grid_search = GridSearchCV(
+        model,
+        param_grid,
+        cv=5,
+        scoring='accuracy',
+        n_jobs=-1
+    )
+    grid_search.fit(X, y)
+    
+    return grid_search.best_estimator_, grid_search.best_params_
+``` 

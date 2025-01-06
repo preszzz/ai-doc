@@ -1,0 +1,205 @@
+---
+title: "Bias-Variance Analysis"
+description: "This section covers the analysis of the bias-variance tradeoff in machine learning models, including theoretical foundations and practical implementation."
+---
+
+## Theoretical Foundation
+
+### 1. Bias-Variance Decomposition
+The expected prediction error can be decomposed into:
+- Bias²: How far off in general are the model's predictions
+- Variance: How much do predictions vary across different training sets
+- Irreducible Error: The inherent noise in the problem
+
+## Implementation
+
+### 1. Bootstrap-Based Decomposition
+```python
+import numpy as np
+from sklearn.utils import resample
+from sklearn.metrics import mean_squared_error
+
+def bias_variance_decomposition(model, X_train, y_train, X_test, y_test, n_bootstraps=200):
+    """Estimate bias and variance using bootstrap"""
+    # Store predictions for each bootstrap sample
+    predictions = np.zeros((n_bootstraps, len(X_test)))
+    
+    for i in range(n_bootstraps):
+        # Create bootstrap sample
+        X_boot, y_boot = resample(X_train, y_train)
+        
+        # Train model and predict
+        model.fit(X_boot, y_boot)
+        predictions[i, :] = model.predict(X_test)
+    
+    # Compute statistics
+    mean_pred = np.mean(predictions, axis=0)
+    
+    # Compute bias, variance, and total error
+    bias = np.mean((mean_pred - y_test) ** 2)
+    variance = np.mean(np.var(predictions, axis=0))
+    error = np.mean([(y_test - predictions[i]) ** 2 
+                     for i in range(n_bootstraps)])
+    
+    return {
+        'bias': bias,
+        'variance': variance,
+        'error': error,
+        'predictions': predictions,
+        'mean_prediction': mean_pred
+    }
+```
+
+### 2. Model Complexity Analysis
+```python
+def analyze_model_complexity(model_class, param_name, param_range, X_train, y_train, X_test, y_test):
+    """Analyze bias-variance tradeoff across model complexities"""
+    results = {}
+    
+    for param_value in param_range:
+        # Create and configure model
+        model = model_class(**{param_name: param_value})
+        
+        # Perform bias-variance decomposition
+        decomposition = bias_variance_decomposition(
+            model, X_train, y_train, X_test, y_test
+        )
+        
+        results[param_value] = decomposition
+    
+    return results
+```
+
+## Visualization
+
+### 1. Bias-Variance Curves
+```python
+import matplotlib.pyplot as plt
+
+def plot_bias_variance_curves(complexity_results, param_name):
+    """Plot bias-variance curves across model complexities"""
+    complexities = list(complexity_results.keys())
+    bias = [results['bias'] for results in complexity_results.values()]
+    variance = [results['variance'] for results in complexity_results.values()]
+    total_error = [results['error'] for results in complexity_results.values()]
+    
+    plt.figure(figsize=(12, 8))
+    plt.plot(complexities, bias, label='Bias²', marker='o')
+    plt.plot(complexities, variance, label='Variance', marker='s')
+    plt.plot(complexities, total_error, label='Total Error', marker='^')
+    
+    plt.xlabel(f'Model Complexity ({param_name})')
+    plt.ylabel('Error')
+    plt.title('Bias-Variance Tradeoff')
+    plt.legend()
+    plt.grid(True)
+    
+    return plt.gcf()
+```
+
+### 2. Prediction Distribution
+```python
+def plot_prediction_distribution(decomposition_result, X_test, y_test):
+    """Plot distribution of predictions across bootstrap samples"""
+    predictions = decomposition_result['predictions']
+    mean_pred = decomposition_result['mean_prediction']
+    
+    plt.figure(figsize=(12, 8))
+    
+    # Plot individual predictions
+    for i in range(min(50, len(predictions))):  # Limit to 50 predictions for clarity
+        plt.plot(X_test, predictions[i], 'b-', alpha=0.1)
+    
+    # Plot mean prediction and true values
+    plt.plot(X_test, mean_pred, 'r-', label='Mean Prediction')
+    plt.plot(X_test, y_test, 'g-', label='True Values')
+    
+    plt.xlabel('X')
+    plt.ylabel('y')
+    plt.title('Prediction Distribution')
+    plt.legend()
+    plt.grid(True)
+    
+    return plt.gcf()
+```
+
+## Advanced Analysis
+
+### 1. Cross-Validation Based Analysis
+```python
+from sklearn.model_selection import KFold
+
+def cv_bias_variance_analysis(model, X, y, n_splits=5):
+    """Analyze bias-variance using cross-validation"""
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    
+    # Store results
+    cv_results = []
+    
+    for train_idx, val_idx in kf.split(X):
+        # Split data
+        X_train, X_val = X[train_idx], X[val_idx]
+        y_train, y_val = y[train_idx], y[val_idx]
+        
+        # Perform bias-variance decomposition
+        decomposition = bias_variance_decomposition(
+            model, X_train, y_train, X_val, y_val
+        )
+        
+        cv_results.append(decomposition)
+    
+    # Aggregate results
+    mean_results = {
+        'bias': np.mean([r['bias'] for r in cv_results]),
+        'variance': np.mean([r['variance'] for r in cv_results]),
+        'error': np.mean([r['error'] for r in cv_results])
+    }
+    
+    return mean_results, cv_results
+```
+
+### 2. Learning Curve Analysis
+```python
+def analyze_learning_curves_with_bias_variance(model, X, y, train_sizes=np.linspace(0.1, 1.0, 10)):
+    """Analyze bias-variance tradeoff across different training set sizes"""
+    results = {}
+    
+    for size in train_sizes:
+        # Sample training data
+        n_samples = int(len(X) * size)
+        indices = np.random.choice(len(X), n_samples, replace=False)
+        X_sample = X[indices]
+        y_sample = y[indices]
+        
+        # Perform cross-validation based analysis
+        mean_results, _ = cv_bias_variance_analysis(model, X_sample, y_sample)
+        results[size] = mean_results
+    
+    return results
+```
+
+## Best Practices
+
+### 1. Analysis Strategy
+- Use multiple evaluation methods
+- Consider computational cost
+- Account for data characteristics
+- Validate findings across datasets
+
+### 2. Model Selection
+- Balance bias and variance
+- Consider problem requirements
+- Use cross-validation
+- Account for uncertainty
+
+### 3. Interpretation
+- Consider practical significance
+- Account for noise level
+- Examine trends across complexity
+- Document assumptions
+
+### 4. Common Pitfalls
+- Insufficient bootstrap samples
+- Ignoring data dependencies
+- Overfitting to validation set
+- Not considering scalability 

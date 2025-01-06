@@ -1,0 +1,246 @@
+---
+title: 'Handling Missing Data'
+description: 'Techniques and strategies for dealing with missing values in datasets'
+icon: 'question-mark'
+draft: false
+---
+
+Missing data is a common challenge in machine learning projects that can significantly impact model performance if not handled properly.
+
+## Understanding Missing Data Patterns
+
+### Types of Missing Data
+
+1. **Missing Completely at Random (MCAR)**
+   - Missing values are truly random
+   - No relationship between missing and observed values
+
+2. **Missing at Random (MAR)**
+   - Missing values have patterns that can be explained by other observed variables
+
+3. **Missing Not at Random (MNAR)**
+   - Missing values are related to unobserved variables
+   - The missingness itself is informative
+
+```python
+import pandas as pd
+import numpy as np
+import seaborn as sns
+
+def analyze_missing_patterns(df):
+    # Missing value patterns
+    missing = df.isnull().sum()
+    missing_pct = (missing / len(df)) * 100
+    
+    # Create missing value report
+    report = pd.DataFrame({
+        'Missing Values': missing,
+        'Percentage': missing_pct
+    })
+    return report.sort_values('Percentage', ascending=False)
+```
+
+## Missing Value Detection
+
+### Identifying Missing Values
+
+```python
+# Common missing value patterns
+def detect_missing_values(df):
+    # Standard null values
+    null_counts = df.isnull().sum()
+    
+    # Custom missing value indicators
+    custom_missing = df.isin(['NA', 'N/A', '', ' '])
+    custom_counts = custom_missing.sum()
+    
+    return pd.DataFrame({
+        'Null Count': null_counts,
+        'Custom Missing': custom_counts
+    })
+```
+
+## Imputation Techniques
+
+### Simple Imputation
+
+1. **Mean/Median Imputation**
+
+```python
+from sklearn.impute import SimpleImputer
+
+# Mean imputation
+imputer = SimpleImputer(strategy='mean')
+X_imputed = imputer.fit_transform(X)
+
+# Median imputation for skewed data
+imputer_median = SimpleImputer(strategy='median')
+X_imputed_median = imputer_median.fit_transform(X)
+```
+
+2. **Mode Imputation (for categorical variables)**
+
+```python
+# Mode imputation
+categorical_imputer = SimpleImputer(strategy='most_frequent')
+X_cat_imputed = categorical_imputer.fit_transform(X_categorical)
+```
+
+### Advanced Imputation
+
+1. **KNN Imputation**
+
+```python
+from sklearn.impute import KNNImputer
+
+# KNN imputation
+imputer = KNNImputer(n_neighbors=5)
+X_imputed = imputer.fit_transform(X)
+```
+
+2. **Iterative Imputation (MICE)**
+
+```python
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+
+# MICE imputation
+mice_imputer = IterativeImputer(random_state=42)
+X_mice = mice_imputer.fit_transform(X)
+```
+
+## Statistical Methods
+
+### Maximum Likelihood Estimation
+
+For normally distributed data:
+
+```math
+\mu_{MLE} = \frac{1}{n}\sum_{i=1}^n x_i
+```
+
+```python
+from sklearn.mixture import GaussianMixture
+
+def mle_imputation(data):
+    gmm = GaussianMixture(n_components=1)
+    mask = data.isnull()
+    
+    # Fit GMM on observed data
+    observed = data[~mask]
+    gmm.fit(observed.reshape(-1, 1))
+    
+    # Impute missing values
+    missing = data[mask]
+    imputed = gmm.sample(n_samples=len(missing))[0]
+    data[mask] = imputed
+    return data
+```
+
+## Machine Learning Based Imputation
+
+### Random Forest Imputation
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+
+def rf_impute(df, target_column):
+    # Create copy of data
+    df_copy = df.copy()
+    
+    # Identify missing and non-missing rows
+    missing_rows = df_copy[target_column].isnull()
+    
+    # Train random forest on non-missing data
+    X_train = df_copy[~missing_rows].drop(target_column, axis=1)
+    y_train = df_copy[~missing_rows][target_column]
+    
+    rf = RandomForestRegressor(n_estimators=100)
+    rf.fit(X_train, y_train)
+    
+    # Predict missing values
+    X_missing = df_copy[missing_rows].drop(target_column, axis=1)
+    df_copy.loc[missing_rows, target_column] = rf.predict(X_missing)
+    
+    return df_copy
+```
+
+## Best Practices
+
+1. **Analyze Missing Patterns First**
+```python
+def visualize_missing_patterns(df):
+    plt.figure(figsize=(10, 6))
+    sns.heatmap(df.isnull(), yticklabels=False, cbar=False)
+    plt.title('Missing Value Patterns')
+    plt.show()
+```
+
+2. **Create Missing Indicators**
+```python
+def add_missing_indicators(df):
+    indicators = pd.DataFrame()
+    for column in df.columns:
+        if df[column].isnull().any():
+            indicators[f'{column}_missing'] = df[column].isnull().astype(int)
+    return pd.concat([df, indicators], axis=1)
+```
+
+3. **Validate Imputation Results**
+```python
+def validate_imputation(original_df, imputed_df):
+    # Compare distributions
+    for column in original_df.columns:
+        if original_df[column].isnull().any():
+            plt.figure(figsize=(10, 4))
+            plt.subplot(1, 2, 1)
+            original_df[column].hist()
+            plt.title('Original Distribution')
+            
+            plt.subplot(1, 2, 2)
+            imputed_df[column].hist()
+            plt.title('Imputed Distribution')
+            plt.show()
+```
+
+## Handling Time Series Data
+
+```python
+def interpolate_time_series(df, method='linear'):
+    """
+    Interpolate missing values in time series data
+    """
+    return df.interpolate(
+        method=method,
+        limit_direction='both',
+        axis=0
+    )
+```
+
+## Impact Analysis
+
+Always evaluate the impact of your missing value treatment:
+
+```python
+def evaluate_imputation_impact(original_df, imputed_df, target, model):
+    # Train model on original data
+    original_score = cross_val_score(
+        model, 
+        original_df.dropna(), 
+        target, 
+        cv=5
+    ).mean()
+    
+    # Train model on imputed data
+    imputed_score = cross_val_score(
+        model,
+        imputed_df,
+        target,
+        cv=5
+    ).mean()
+    
+    return {
+        'original_score': original_score,
+        'imputed_score': imputed_score
+    }
+``` 

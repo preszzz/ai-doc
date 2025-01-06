@@ -1,0 +1,216 @@
+---
+title: "Introduction to Model Evaluation"
+description: "Model evaluation is a critical component of machine learning that helps us understand how well our models perform and make informed decisions about model selection and improvement."
+---
+
+## Core Concepts
+
+### 1. Purpose of Model Evaluation
+
+- **Performance Assessment**: Measuring how well models perform
+- **Model Selection**: Choosing between different models
+- **Hyperparameter Tuning**: Optimizing model parameters
+- **Generalization**: Assessing model's ability to handle new data
+
+### 2. Evaluation Process
+
+1. **Data Splitting**
+   - Training set
+   - Validation set
+   - Test set
+   - Cross-validation approaches
+
+2. **Performance Metrics**
+   - Accuracy-based metrics
+   - Error-based metrics
+   - Probabilistic metrics
+   - Ranking metrics
+
+3. **Validation Strategies**
+   - Hold-out validation
+   - K-fold cross-validation
+   - Leave-one-out cross-validation
+   - Stratified cross-validation
+
+## Implementation Examples
+
+### 1. Basic Evaluation Setup
+```python
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+class ModelEvaluator:
+    def __init__(self, model, metrics=None):
+        self.model = model
+        self.metrics = metrics or {
+            'accuracy': accuracy_score,
+            'precision': precision_score,
+            'recall': recall_score,
+            'f1': f1_score
+        }
+        self.results = {}
+    
+    def evaluate(self, X, y, test_size=0.2, random_state=42):
+        """Evaluate model performance using train-test split"""
+        # Split data
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=random_state
+        )
+        
+        # Train model
+        self.model.fit(X_train, y_train)
+        
+        # Make predictions
+        y_pred = self.model.predict(X_test)
+        
+        # Compute metrics
+        for name, metric in self.metrics.items():
+            self.results[name] = metric(y_test, y_pred)
+        
+        return self.results
+
+# Example usage
+def evaluate_model_example():
+    from sklearn.datasets import make_classification
+    from sklearn.linear_model import LogisticRegression
+    
+    # Generate sample data
+    X, y = make_classification(
+        n_samples=1000,
+        n_features=20,
+        n_informative=15,
+        n_redundant=5,
+        random_state=42
+    )
+    
+    # Create and evaluate model
+    model = LogisticRegression()
+    evaluator = ModelEvaluator(model)
+    results = evaluator.evaluate(X, y)
+    
+    return results
+```
+
+### 2. Cross-Validation Implementation
+```python
+from sklearn.model_selection import KFold
+from sklearn.metrics import mean_squared_error, r2_score
+
+def cross_validate(model, X, y, n_splits=5, metrics=None):
+    """Perform k-fold cross-validation"""
+    metrics = metrics or {
+        'mse': mean_squared_error,
+        'r2': r2_score
+    }
+    
+    # Initialize K-fold
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    
+    # Store results
+    results = {name: [] for name in metrics}
+    
+    # Perform cross-validation
+    for train_idx, val_idx in kf.split(X):
+        # Split data
+        X_train, X_val = X[train_idx], X[val_idx]
+        y_train, y_val = y[train_idx], y[val_idx]
+        
+        # Train model
+        model.fit(X_train, y_train)
+        
+        # Make predictions
+        y_pred = model.predict(X_val)
+        
+        # Compute metrics
+        for name, metric in metrics.items():
+            score = metric(y_val, y_pred)
+            results[name].append(score)
+    
+    # Compute mean and std for each metric
+    summary = {
+        name: {
+            'mean': np.mean(scores),
+            'std': np.std(scores)
+        }
+        for name, scores in results.items()
+    }
+    
+    return summary
+```
+
+### 3. Learning Curves
+```python
+import matplotlib.pyplot as plt
+from sklearn.model_selection import learning_curve
+
+def plot_learning_curves(model, X, y, cv=5, train_sizes=np.linspace(0.1, 1.0, 10)):
+    """Plot learning curves to analyze bias-variance tradeoff"""
+    # Calculate learning curves
+    train_sizes, train_scores, val_scores = learning_curve(
+        model, X, y,
+        train_sizes=train_sizes,
+        cv=cv,
+        n_jobs=-1,
+        scoring='neg_mean_squared_error'
+    )
+    
+    # Calculate mean and std
+    train_mean = -np.mean(train_scores, axis=1)
+    train_std = np.std(train_scores, axis=1)
+    val_mean = -np.mean(val_scores, axis=1)
+    val_std = np.std(val_scores, axis=1)
+    
+    # Plot curves
+    plt.figure(figsize=(10, 6))
+    plt.plot(train_sizes, train_mean, label='Training error')
+    plt.plot(train_sizes, val_mean, label='Validation error')
+    
+    # Plot standard deviation bands
+    plt.fill_between(
+        train_sizes,
+        train_mean - train_std,
+        train_mean + train_std,
+        alpha=0.1
+    )
+    plt.fill_between(
+        train_sizes,
+        val_mean - val_std,
+        val_mean + val_std,
+        alpha=0.1
+    )
+    
+    plt.xlabel('Training Examples')
+    plt.ylabel('Mean Squared Error')
+    plt.title('Learning Curves')
+    plt.legend(loc='best')
+    plt.grid(True)
+    
+    return plt.gcf()
+```
+
+## Best Practices
+
+### 1. Data Splitting
+- Use stratified sampling for imbalanced datasets
+- Maintain temporal order for time series data
+- Ensure representative splits
+- Consider data dependencies
+
+### 2. Metric Selection
+- Choose metrics aligned with business objectives
+- Consider class imbalance
+- Use multiple complementary metrics
+- Understand metric limitations
+
+### 3. Validation Strategy
+- Use cross-validation for small datasets
+- Consider temporal cross-validation for time series
+- Implement nested cross-validation for model selection
+- Account for data distribution
+
+### 4. Results Interpretation
+- Consider statistical significance
+- Account for uncertainty
+- Compare against baselines
+- Document assumptions and limitations 

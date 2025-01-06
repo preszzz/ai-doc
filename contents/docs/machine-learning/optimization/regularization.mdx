@@ -1,0 +1,360 @@
+---
+title: 'Regularization'
+description: 'Understanding and implementing regularization techniques to prevent overfitting'
+icon: 'shield'
+draft: false
+---
+
+Regularization techniques help prevent overfitting by adding constraints to machine learning models.
+
+## L1 Regularization (Lasso)
+
+### Mathematical Foundation
+
+```math
+L(\theta) = \text{Loss}(\theta) + \lambda\|\theta\|_1
+```
+
+```python
+from sklearn.linear_model import Lasso
+
+def train_lasso_model(X, y, alpha=1.0):
+    # Initialize and train Lasso model
+    model = Lasso(alpha=alpha)
+    model.fit(X, y)
+    
+    # Get feature importance
+    feature_importance = pd.DataFrame({
+        'feature': range(X.shape[1]),
+        'coefficient': model.coef_
+    })
+    
+    return model, feature_importance
+
+def plot_lasso_path(X, y, alphas):
+    # Calculate Lasso path
+    coefs = []
+    for alpha in alphas:
+        model = Lasso(alpha=alpha)
+        model.fit(X, y)
+        coefs.append(model.coef_)
+    
+    # Plot coefficients vs alpha
+    plt.figure(figsize=(10, 6))
+    plt.plot(alphas, np.array(coefs))
+    plt.xscale('log')
+    plt.xlabel('Alpha')
+    plt.ylabel('Coefficients')
+    plt.title('Lasso Path')
+    return plt
+```
+
+## L2 Regularization (Ridge)
+
+### Mathematical Foundation
+
+```math
+L(\theta) = \text{Loss}(\theta) + \lambda\|\theta\|^2_2
+```
+
+```python
+from sklearn.linear_model import Ridge
+
+def train_ridge_model(X, y, alpha=1.0):
+    # Initialize and train Ridge model
+    model = Ridge(alpha=alpha)
+    model.fit(X, y)
+    
+    return model
+
+def analyze_ridge_regularization(X, y, alphas):
+    scores = []
+    coefs = []
+    
+    for alpha in alphas:
+        model = Ridge(alpha=alpha)
+        score = cross_val_score(model, X, y, cv=5).mean()
+        model.fit(X, y)
+        
+        scores.append(score)
+        coefs.append(model.coef_)
+    
+    return scores, coefs
+```
+
+## Elastic Net
+
+Combining L1 and L2 regularization:
+
+```python
+from sklearn.linear_model import ElasticNet
+
+def train_elastic_net(X, y, alpha=1.0, l1_ratio=0.5):
+    # Initialize and train Elastic Net
+    model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
+    model.fit(X, y)
+    
+    return model
+
+def elastic_net_path(X, y, l1_ratios, alphas):
+    results = []
+    
+    for l1_ratio in l1_ratios:
+        for alpha in alphas:
+            model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
+            score = cross_val_score(model, X, y, cv=5).mean()
+            results.append({
+                'l1_ratio': l1_ratio,
+                'alpha': alpha,
+                'score': score
+            })
+    
+    return pd.DataFrame(results)
+```
+
+## Dropout
+
+```python
+import torch.nn as nn
+
+class DropoutNet(nn.Module):
+    def __init__(self, input_size, hidden_size, dropout_rate=0.5):
+        super().__init__()
+        self.layer1 = nn.Linear(input_size, hidden_size)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.layer2 = nn.Linear(hidden_size, 1)
+        
+    def forward(self, x):
+        x = self.layer1(x)
+        x = nn.ReLU()(x)
+        x = self.dropout(x)
+        x = self.layer2(x)
+        return x
+
+def train_with_dropout(model, train_loader, val_loader, epochs=100):
+    optimizer = torch.optim.Adam(model.parameters())
+    criterion = nn.MSELoss()
+    
+    train_losses = []
+    val_losses = []
+    
+    for epoch in range(epochs):
+        # Training phase
+        model.train()
+        train_loss = 0
+        for X_batch, y_batch in train_loader:
+            optimizer.zero_grad()
+            output = model(X_batch)
+            loss = criterion(output, y_batch)
+            loss.backward()
+            optimizer.step()
+            train_loss += loss.item()
+        
+        # Validation phase
+        model.eval()
+        val_loss = 0
+        with torch.no_grad():
+            for X_batch, y_batch in val_loader:
+                output = model(X_batch)
+                val_loss += criterion(output, y_batch).item()
+        
+        train_losses.append(train_loss / len(train_loader))
+        val_losses.append(val_loss / len(val_loader))
+    
+    return train_losses, val_losses
+```
+
+## Early Stopping
+
+```python
+class EarlyStopping:
+    def __init__(self, patience=5, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+        self.best_model = None
+        
+    def __call__(self, model, val_loss):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+            self.best_model = model.state_dict()
+        elif val_loss > self.best_loss - self.min_delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_loss = val_loss
+            self.best_model = model.state_dict()
+            self.counter = 0
+        
+        return self.early_stop
+```
+
+## Weight Decay
+
+```python
+def train_with_weight_decay(model, train_loader, weight_decay=0.01):
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        weight_decay=weight_decay
+    )
+    criterion = nn.MSELoss()
+    
+    for X_batch, y_batch in train_loader:
+        optimizer.zero_grad()
+        output = model(X_batch)
+        
+        # Compute loss with L2 regularization
+        l2_reg = torch.tensor(0.)
+        for param in model.parameters():
+            l2_reg += torch.norm(param)
+        
+        loss = criterion(output, y_batch) + weight_decay * l2_reg
+        loss.backward()
+        optimizer.step()
+```
+
+## Cross-Validation with Regularization
+
+```python
+def cv_with_regularization(X, y, alphas, model_type='ridge'):
+    results = []
+    
+    for alpha in alphas:
+        if model_type == 'ridge':
+            model = Ridge(alpha=alpha)
+        elif model_type == 'lasso':
+            model = Lasso(alpha=alpha)
+        else:
+            model = ElasticNet(alpha=alpha)
+        
+        scores = cross_val_score(model, X, y, cv=5)
+        results.append({
+            'alpha': alpha,
+            'mean_score': scores.mean(),
+            'std_score': scores.std()
+        })
+    
+    return pd.DataFrame(results)
+```
+
+## Visualization Tools
+
+```python
+def plot_regularization_path(alphas, coefficients, feature_names=None):
+    plt.figure(figsize=(12, 6))
+    
+    for i, coef in enumerate(coefficients.T):
+        label = f'Feature {i}' if feature_names is None else feature_names[i]
+        plt.plot(alphas, coef, label=label)
+    
+    plt.xscale('log')
+    plt.xlabel('Regularization Strength (alpha)')
+    plt.ylabel('Coefficient Value')
+    plt.title('Regularization Path')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    return plt
+
+def plot_validation_curves(train_scores, val_scores, param_range, param_name):
+    plt.figure(figsize=(10, 6))
+    plt.plot(param_range, train_scores, label='Training Score')
+    plt.plot(param_range, val_scores, label='Validation Score')
+    plt.xlabel(param_name)
+    plt.ylabel('Score')
+    plt.title('Validation Curves')
+    plt.legend()
+    return plt
+```
+
+## Model Complexity Analysis
+
+```python
+def analyze_model_complexity(X, y, max_degree=5):
+    train_scores = []
+    val_scores = []
+    
+    for degree in range(1, max_degree + 1):
+        # Create polynomial features
+        poly = PolynomialFeatures(degree=degree)
+        X_poly = poly.fit_transform(X)
+        
+        # Train model with regularization
+        model = Ridge(alpha=0.1)
+        scores = cross_val_score(model, X_poly, y, cv=5)
+        
+        train_scores.append(scores.mean())
+        val_scores.append(scores.std())
+    
+    return train_scores, val_scores
+
+def plot_complexity_analysis(train_scores, val_scores):
+    plt.figure(figsize=(10, 6))
+    degrees = range(1, len(train_scores) + 1)
+    
+    plt.plot(degrees, train_scores, label='Training Score')
+    plt.plot(degrees, val_scores, label='Validation Score')
+    plt.xlabel('Polynomial Degree')
+    plt.ylabel('Score')
+    plt.title('Model Complexity Analysis')
+    plt.legend()
+    return plt
+```
+
+## Best Practices
+
+1. **Regularization Strength Selection**
+```python
+def select_regularization_strength(X, y, model_type='ridge'):
+    # Define range of regularization strengths
+    alphas = np.logspace(-4, 4, 100)
+    
+    # Perform cross-validation
+    results = cv_with_regularization(X, y, alphas, model_type)
+    
+    # Find optimal alpha
+    optimal_alpha = results.loc[
+        results['mean_score'].idxmax(),
+        'alpha'
+    ]
+    
+    return optimal_alpha
+```
+
+2. **Feature Scaling**
+```python
+def scale_for_regularization(X_train, X_test):
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    
+    return X_train_scaled, X_test_scaled, scaler
+```
+
+3. **Model Evaluation**
+```python
+def evaluate_regularized_model(model, X, y):
+    # Perform k-fold cross-validation
+    cv_scores = cross_val_score(model, X, y, cv=5)
+    
+    # Train final model
+    model.fit(X, y)
+    
+    # Get feature importance
+    if hasattr(model, 'coef_'):
+        importance = pd.DataFrame({
+            'feature': range(X.shape[1]),
+            'coefficient': np.abs(model.coef_)
+        }).sort_values('coefficient', ascending=False)
+    else:
+        importance = None
+    
+    return {
+        'cv_scores': cv_scores,
+        'mean_score': cv_scores.mean(),
+        'std_score': cv_scores.std(),
+        'feature_importance': importance
+    }
+``` 

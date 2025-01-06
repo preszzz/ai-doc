@@ -1,0 +1,327 @@
+---
+title: 'Neural Networks Basics'
+description: 'Understanding fundamental concepts and implementations of neural networks'
+icon: 'network'
+draft: false
+---
+
+Neural networks are powerful models inspired by biological neural networks, capable of learning complex patterns in data.
+
+## Fundamental Concepts
+
+### Artificial Neurons
+
+The basic building block of neural networks:
+
+```math
+y = \sigma(\sum_{i=1}^n w_ix_i + b)
+```
+
+where:
+- x_i are inputs
+- w_i are weights
+- b is bias
+- σ is activation function
+
+### Activation Functions
+
+```python
+import numpy as np
+
+class ActivationFunctions:
+    @staticmethod
+    def sigmoid(x):
+        return 1 / (1 + np.exp(-x))
+    
+    @staticmethod
+    def relu(x):
+        return np.maximum(0, x)
+    
+    @staticmethod
+    def tanh(x):
+        return np.tanh(x)
+    
+    @staticmethod
+    def softmax(x):
+        exp_x = np.exp(x - np.max(x))
+        return exp_x / exp_x.sum(axis=0)
+```
+
+## Neural Network Architecture
+
+### Simple Feed-forward Network
+
+```python
+import torch
+import torch.nn as nn
+
+class SimpleNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(SimpleNN, self).__init__()
+        self.layer1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.layer2 = nn.Linear(hidden_size, output_size)
+        
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.relu(x)
+        x = self.layer2(x)
+        return x
+```
+
+### Multi-layer Perceptron (MLP)
+
+```python
+class MLP(nn.Module):
+    def __init__(self, layer_sizes):
+        super(MLP, self).__init__()
+        self.layers = nn.ModuleList()
+        
+        for i in range(len(layer_sizes)-1):
+            self.layers.append(nn.Linear(
+                layer_sizes[i],
+                layer_sizes[i+1]
+            ))
+            
+    def forward(self, x):
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i < len(self.layers) - 1:
+                x = nn.ReLU()(x)
+        return x
+```
+
+## Training Neural Networks
+
+### Loss Functions
+
+```python
+def compute_loss(y_pred, y_true, loss_type='mse'):
+    if loss_type == 'mse':
+        return nn.MSELoss()(y_pred, y_true)
+    elif loss_type == 'cross_entropy':
+        return nn.CrossEntropyLoss()(y_pred, y_true)
+    elif loss_type == 'binary_cross_entropy':
+        return nn.BCELoss()(y_pred, y_true)
+```
+
+### Backpropagation
+
+```python
+def train_step(model, optimizer, X_batch, y_batch):
+    # Forward pass
+    y_pred = model(X_batch)
+    loss = compute_loss(y_pred, y_batch)
+    
+    # Backward pass
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    
+    return loss.item()
+```
+
+### Training Loop
+
+```python
+def train_model(model, train_loader, val_loader, 
+                epochs=100, learning_rate=0.001):
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate
+    )
+    
+    history = {
+        'train_loss': [],
+        'val_loss': []
+    }
+    
+    for epoch in range(epochs):
+        # Training phase
+        model.train()
+        train_losses = []
+        
+        for X_batch, y_batch in train_loader:
+            loss = train_step(model, optimizer, X_batch, y_batch)
+            train_losses.append(loss)
+            
+        # Validation phase
+        model.eval()
+        val_losses = []
+        
+        with torch.no_grad():
+            for X_batch, y_batch in val_loader:
+                y_pred = model(X_batch)
+                val_loss = compute_loss(y_pred, y_batch)
+                val_losses.append(val_loss.item())
+        
+        # Record history
+        history['train_loss'].append(np.mean(train_losses))
+        history['val_loss'].append(np.mean(val_losses))
+        
+    return history
+```
+
+## Regularization Techniques
+
+### Dropout
+
+```python
+class DropoutMLP(nn.Module):
+    def __init__(self, layer_sizes, dropout_rate=0.5):
+        super(DropoutMLP, self).__init__()
+        self.layers = nn.ModuleList()
+        self.dropout = nn.Dropout(dropout_rate)
+        
+        for i in range(len(layer_sizes)-1):
+            self.layers.append(nn.Linear(
+                layer_sizes[i],
+                layer_sizes[i+1]
+            ))
+            
+    def forward(self, x):
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i < len(self.layers) - 1:
+                x = nn.ReLU()(x)
+                x = self.dropout(x)
+        return x
+```
+
+### L1/L2 Regularization
+
+```python
+def add_regularization(model, loss, lambda_l1=0.01, lambda_l2=0.01):
+    # L1 regularization
+    l1_reg = torch.tensor(0.)
+    for param in model.parameters():
+        l1_reg += torch.norm(param, 1)
+    
+    # L2 regularization
+    l2_reg = torch.tensor(0.)
+    for param in model.parameters():
+        l2_reg += torch.norm(param, 2)
+    
+    return loss + lambda_l1 * l1_reg + lambda_l2 * l2_reg
+```
+
+## Weight Initialization
+
+```python
+def initialize_weights(model):
+    for m in model.modules():
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_uniform_(m.weight)
+            nn.init.zeros_(m.bias)
+```
+
+## Learning Rate Scheduling
+
+```python
+def create_lr_scheduler(optimizer, mode='step'):
+    if mode == 'step':
+        return torch.optim.lr_scheduler.StepLR(
+            optimizer,
+            step_size=30,
+            gamma=0.1
+        )
+    elif mode == 'cosine':
+        return torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=100
+        )
+```
+
+## Model Evaluation
+
+```python
+def evaluate_model(model, test_loader):
+    model.eval()
+    predictions = []
+    actual = []
+    
+    with torch.no_grad():
+        for X_batch, y_batch in test_loader:
+            y_pred = model(X_batch)
+            predictions.extend(y_pred.numpy())
+            actual.extend(y_batch.numpy())
+    
+    return np.array(predictions), np.array(actual)
+```
+
+## Visualization Tools
+
+```python
+def plot_training_history(history):
+    plt.figure(figsize=(10, 6))
+    plt.plot(history['train_loss'], label='Training Loss')
+    plt.plot(history['val_loss'], label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training History')
+    plt.legend()
+    return plt
+
+def visualize_decision_boundary(model, X, y):
+    # Create mesh grid
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(
+        np.arange(x_min, x_max, 0.02),
+        np.arange(y_min, y_max, 0.02)
+    )
+    
+    # Make predictions
+    Z = model(torch.FloatTensor(
+        np.c_[xx.ravel(), yy.ravel()]
+    )).detach().numpy()
+    Z = Z.reshape(xx.shape)
+    
+    # Plot
+    plt.contourf(xx, yy, Z, alpha=0.4)
+    plt.scatter(X[:, 0], X[:, 1], c=y, alpha=0.8)
+    return plt
+```
+
+## Best Practices
+
+1. **Data Preparation**
+```python
+def prepare_data_for_nn(X, y):
+    # Scale features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    # Convert to tensors
+    X_tensor = torch.FloatTensor(X_scaled)
+    y_tensor = torch.FloatTensor(y)
+    
+    return X_tensor, y_tensor
+```
+
+2. **Model Architecture Selection**
+```python
+def select_architecture(input_size, output_size, problem_type):
+    if problem_type == 'binary':
+        return SimpleNN(input_size, 64, 1)
+    elif problem_type == 'multiclass':
+        return MLP([input_size, 128, 64, output_size])
+    elif problem_type == 'regression':
+        return MLP([input_size, 64, 32, 1])
+```
+
+3. **Hyperparameter Tuning**
+```python
+def tune_hyperparameters(model_class, param_grid, X, y):
+    results = []
+    
+    for params in param_grid:
+        model = model_class(**params)
+        history = train_model(model, X, y)
+        results.append({
+            'params': params,
+            'final_loss': history['val_loss'][-1]
+        })
+    
+    return results
+```

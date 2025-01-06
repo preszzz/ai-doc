@@ -1,0 +1,273 @@
+---
+title: "Model Selection"
+description: "Model selection is the process of choosing the best model from a set of candidate models. This section covers various techniques for model selection and hyperparameter tuning."
+---
+
+## Grid Search
+
+### 1. Basic Grid Search
+```python
+import numpy as np
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import make_scorer, mean_squared_error, accuracy_score
+
+def grid_search_cv(model, param_grid, X, y, cv=5, scoring=None):
+    """Perform grid search with cross-validation"""
+    # Set up scoring
+    if scoring is None:
+        if len(np.unique(y)) <= 2:  # Binary classification
+            scoring = 'accuracy'
+        else:  # Regression
+            scoring = 'neg_mean_squared_error'
+    
+    # Initialize grid search
+    grid_search = GridSearchCV(
+        estimator=model,
+        param_grid=param_grid,
+        cv=cv,
+        scoring=scoring,
+        n_jobs=-1,
+        verbose=1
+    )
+    
+    # Fit grid search
+    grid_search.fit(X, y)
+    
+    # Get results
+    results = {
+        'best_params': grid_search.best_params_,
+        'best_score': grid_search.best_score_,
+        'cv_results': grid_search.cv_results_
+    }
+    
+    return results
+```
+
+### 2. Randomized Search
+```python
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import uniform, randint
+
+def random_search_cv(model, param_distributions, X, y, n_iter=100, cv=5, scoring=None):
+    """Perform randomized search with cross-validation"""
+    # Set up scoring
+    if scoring is None:
+        if len(np.unique(y)) <= 2:
+            scoring = 'accuracy'
+        else:
+            scoring = 'neg_mean_squared_error'
+    
+    # Initialize random search
+    random_search = RandomizedSearchCV(
+        estimator=model,
+        param_distributions=param_distributions,
+        n_iter=n_iter,
+        cv=cv,
+        scoring=scoring,
+        n_jobs=-1,
+        verbose=1
+    )
+    
+    # Fit random search
+    random_search.fit(X, y)
+    
+    # Get results
+    results = {
+        'best_params': random_search.best_params_,
+        'best_score': random_search.best_score_,
+        'cv_results': random_search.cv_results_
+    }
+    
+    return results
+```
+
+## Model Comparison
+
+### 1. Cross-Validation Comparison
+```python
+def compare_models(models, X, y, cv=5):
+    """Compare multiple models using cross-validation"""
+    from sklearn.model_selection import cross_val_score
+    
+    # Store results
+    results = {}
+    
+    # Evaluate each model
+    for name, model in models.items():
+        # Perform cross-validation
+        scores = cross_val_score(
+            model, X, y,
+            cv=cv,
+            scoring='neg_mean_squared_error' if len(np.unique(y)) > 2 else 'accuracy'
+        )
+        
+        # Store results
+        results[name] = {
+            'mean_score': np.mean(scores),
+            'std_score': np.std(scores),
+            'scores': scores
+        }
+    
+    return results
+```
+
+### 2. Statistical Comparison
+```python
+from scipy import stats
+
+def statistical_comparison(model_results):
+    """Perform statistical comparison of models"""
+    # Store model names and scores
+    models = list(model_results.keys())
+    scores = [model_results[model]['scores'] for model in models]
+    
+    # Perform Friedman test
+    statistic, p_value = stats.friedmanchisquare(*scores)
+    
+    # Perform pairwise t-tests
+    pairwise_tests = {}
+    for i in range(len(models)):
+        for j in range(i + 1, len(models)):
+            t_stat, p_val = stats.ttest_rel(scores[i], scores[j])
+            pair = f"{models[i]} vs {models[j]}"
+            pairwise_tests[pair] = {
+                't_statistic': t_stat,
+                'p_value': p_val
+            }
+    
+    return {
+        'friedman_test': {
+            'statistic': statistic,
+            'p_value': p_value
+        },
+        'pairwise_tests': pairwise_tests
+    }
+```
+
+## Hyperparameter Tuning
+
+### 1. Bayesian Optimization
+```python
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import Matern
+
+class BayesianOptimizer:
+    def __init__(self, model, param_space, n_iterations=50):
+        self.model = model
+        self.param_space = param_space
+        self.n_iterations = n_iterations
+        self.X_samples = []
+        self.y_samples = []
+        
+    def objective(self, params):
+        """Objective function to minimize"""
+        # Set model parameters
+        self.model.set_params(**params)
+        
+        # Perform cross-validation
+        scores = cross_val_score(
+            self.model, self.X, self.y,
+            cv=5,
+            scoring='neg_mean_squared_error'
+        )
+        
+        return -np.mean(scores)
+    
+    def optimize(self, X, y):
+        """Run Bayesian optimization"""
+        self.X = X
+        self.y = y
+        
+        # Initialize Gaussian Process
+        gp = GaussianProcessRegressor(
+            kernel=Matern(nu=2.5),
+            n_restarts_optimizer=10,
+            random_state=42
+        )
+        
+        for i in range(self.n_iterations):
+            # Fit GP to observed data
+            if self.X_samples:
+                gp.fit(self.X_samples, self.y_samples)
+                
+                # Sample next point
+                next_params = self._sample_next_point(gp)
+            else:
+                # Random initialization
+                next_params = {
+                    param: space.rvs()
+                    for param, space in self.param_space.items()
+                }
+            
+            # Evaluate objective
+            score = self.objective(next_params)
+            
+            # Update samples
+            self.X_samples.append(list(next_params.values()))
+            self.y_samples.append(score)
+        
+        # Find best parameters
+        best_idx = np.argmin(self.y_samples)
+        best_params = dict(zip(
+            self.param_space.keys(),
+            self.X_samples[best_idx]
+        ))
+        
+        return best_params, -self.y_samples[best_idx]
+```
+
+### 2. Learning Curves Analysis
+```python
+def analyze_learning_curves(model, param_name, param_range, X, y, cv=5):
+    """Analyze learning curves for different parameter values"""
+    # Store results
+    results = {}
+    
+    for param_value in param_range:
+        # Set parameter
+        model.set_params(**{param_name: param_value})
+        
+        # Calculate learning curves
+        train_sizes, train_scores, val_scores = learning_curve(
+            model, X, y,
+            train_sizes=np.linspace(0.1, 1.0, 10),
+            cv=cv,
+            n_jobs=-1,
+            scoring='neg_mean_squared_error'
+        )
+        
+        # Store results
+        results[param_value] = {
+            'train_sizes': train_sizes,
+            'train_scores': -train_scores.mean(axis=1),
+            'val_scores': -val_scores.mean(axis=1)
+        }
+    
+    return results
+```
+
+## Best Practices
+
+### 1. Search Strategy
+- Use grid search for few parameters
+- Use random search for large spaces
+- Consider Bayesian optimization
+- Balance exploration and exploitation
+
+### 2. Cross-Validation
+- Use appropriate validation strategy
+- Consider data dependencies
+- Account for computational cost
+- Validate final model independently
+
+### 3. Model Selection
+- Consider model complexity
+- Account for uncertainty
+- Use statistical tests
+- Document selection process
+
+### 4. Common Pitfalls
+- Overfitting to validation set
+- Insufficient search space
+- Ignoring computational cost
+- Not considering model stability 

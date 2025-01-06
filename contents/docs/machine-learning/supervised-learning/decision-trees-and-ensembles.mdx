@@ -1,0 +1,383 @@
+---
+title: 'Decision Trees and Ensembles'
+description: 'Understanding and implementing decision trees and ensemble methods'
+icon: 'tree'
+draft: false
+---
+
+Decision trees and ensemble methods are powerful machine learning techniques that combine multiple models for improved performance.
+
+## Decision Trees
+
+### Basic Decision Tree
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+import graphviz
+
+def train_decision_tree(X, y, max_depth=5):
+    # Initialize and train tree
+    tree = DecisionTreeClassifier(
+        max_depth=max_depth,
+        random_state=42
+    )
+    tree.fit(X, y)
+    return tree
+
+def visualize_tree(tree, feature_names):
+    dot_data = export_graphviz(
+        tree,
+        feature_names=feature_names,
+        class_names=True,
+        filled=True,
+        rounded=True
+    )
+    return graphviz.Source(dot_data)
+```
+
+### Tree Construction Criteria
+
+1. **Gini Impurity**
+```math
+Gini = 1 - \sum_{i=1}^c p_i^2
+```
+
+2. **Entropy**
+```math
+Entropy = -\sum_{i=1}^c p_i \log_2(p_i)
+```
+
+```python
+def calculate_split_metrics(y):
+    # Calculate class probabilities
+    class_probs = np.bincount(y) / len(y)
+    
+    # Calculate Gini impurity
+    gini = 1 - np.sum(class_probs ** 2)
+    
+    # Calculate entropy
+    entropy = -np.sum(
+        class_probs * np.log2(class_probs + 1e-10)
+    )
+    
+    return {
+        'gini': gini,
+        'entropy': entropy
+    }
+```
+
+## Ensemble Methods
+
+### Random Forest
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+
+def train_random_forest(X, y, n_estimators=100):
+    # Initialize and train forest
+    rf = RandomForestClassifier(
+        n_estimators=n_estimators,
+        random_state=42
+    )
+    rf.fit(X, y)
+    return rf
+
+def get_feature_importance(rf, feature_names):
+    importance = pd.DataFrame({
+        'feature': feature_names,
+        'importance': rf.feature_importances_
+    }).sort_values('importance', ascending=False)
+    
+    return importance
+```
+
+### Gradient Boosting
+
+```python
+from sklearn.ensemble import GradientBoostingClassifier
+
+def train_gradient_boosting(X, y, n_estimators=100, learning_rate=0.1):
+    # Initialize and train GBM
+    gbm = GradientBoostingClassifier(
+        n_estimators=n_estimators,
+        learning_rate=learning_rate,
+        random_state=42
+    )
+    gbm.fit(X, y)
+    return gbm
+
+def plot_gbm_learning_curve(gbm, X, y):
+    # Get staged predictions
+    staged_scores = list(gbm.staged_score(X, y))
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, len(staged_scores) + 1), staged_scores)
+    plt.xlabel('Number of Trees')
+    plt.ylabel('Accuracy')
+    plt.title('Gradient Boosting Learning Curve')
+    return plt
+```
+
+### XGBoost
+
+```python
+import xgboost as xgb
+
+def train_xgboost(X, y, num_rounds=100):
+    # Convert data to DMatrix
+    dtrain = xgb.DMatrix(X, label=y)
+    
+    # Set parameters
+    params = {
+        'objective': 'binary:logistic',
+        'eval_metric': 'logloss',
+        'max_depth': 6,
+        'eta': 0.3
+    }
+    
+    # Train model
+    model = xgb.train(params, dtrain, num_rounds)
+    return model
+
+def plot_xgb_importance(model, feature_names):
+    importance = model.get_score(importance_type='gain')
+    importance_df = pd.DataFrame({
+        'feature': importance.keys(),
+        'importance': importance.values()
+    }).sort_values('importance', ascending=False)
+    
+    plt.figure(figsize=(10, 6))
+    plt.bar(importance_df['feature'], importance_df['importance'])
+    plt.xticks(rotation=45)
+    plt.title('XGBoost Feature Importance')
+    return plt
+```
+
+### LightGBM
+
+```python
+import lightgbm as lgb
+
+def train_lightgbm(X, y, num_rounds=100):
+    # Create dataset
+    train_data = lgb.Dataset(X, label=y)
+    
+    # Set parameters
+    params = {
+        'objective': 'binary',
+        'metric': 'binary_logloss',
+        'num_leaves': 31,
+        'learning_rate': 0.05
+    }
+    
+    # Train model
+    model = lgb.train(params, train_data, num_rounds)
+    return model
+```
+
+## Stacking and Voting
+
+### Voting Classifier
+
+```python
+from sklearn.ensemble import VotingClassifier
+
+def create_voting_ensemble(models, voting='soft'):
+    # Create named estimators
+    estimators = [
+        (f'model_{i}', model) 
+        for i, model in enumerate(models)
+    ]
+    
+    # Create voting classifier
+    voting_clf = VotingClassifier(
+        estimators=estimators,
+        voting=voting
+    )
+    
+    return voting_clf
+```
+
+### Stacking Classifier
+
+```python
+from sklearn.ensemble import StackingClassifier
+
+def create_stacking_ensemble(
+    base_models,
+    meta_model,
+    cv=5
+):
+    # Create named estimators
+    estimators = [
+        (f'model_{i}', model) 
+        for i, model in enumerate(base_models)
+    ]
+    
+    # Create stacking classifier
+    stacking_clf = StackingClassifier(
+        estimators=estimators,
+        final_estimator=meta_model,
+        cv=cv
+    )
+    
+    return stacking_clf
+```
+
+## Model Interpretation
+
+### Feature Importance Analysis
+
+```python
+def analyze_feature_importance(model, X, feature_names):
+    if hasattr(model, 'feature_importances_'):
+        importance = model.feature_importances_
+    else:
+        importance = np.abs(model.coef_[0])
+    
+    # Create importance DataFrame
+    importance_df = pd.DataFrame({
+        'feature': feature_names,
+        'importance': importance
+    }).sort_values('importance', ascending=False)
+    
+    return importance_df
+
+def plot_feature_importance(importance_df, top_n=10):
+    plt.figure(figsize=(10, 6))
+    importance_df.head(top_n).plot(
+        kind='bar',
+        x='feature',
+        y='importance'
+    )
+    plt.title(f'Top {top_n} Important Features')
+    plt.xticks(rotation=45)
+    return plt
+```
+
+### SHAP Values
+
+```python
+import shap
+
+def calculate_shap_values(model, X):
+    # Initialize SHAP explainer
+    explainer = shap.TreeExplainer(model)
+    
+    # Calculate SHAP values
+    shap_values = explainer.shap_values(X)
+    
+    return shap_values, explainer
+
+def plot_shap_summary(shap_values, X):
+    shap.summary_plot(shap_values, X)
+```
+
+## Hyperparameter Tuning
+
+### Grid Search
+
+```python
+def tune_tree_parameters(X, y):
+    # Parameter grid
+    param_grid = {
+        'max_depth': [3, 5, 7, 9],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    
+    # Create grid search
+    grid_search = GridSearchCV(
+        DecisionTreeClassifier(),
+        param_grid,
+        cv=5,
+        scoring='accuracy'
+    )
+    
+    grid_search.fit(X, y)
+    return grid_search.best_estimator_, grid_search.best_params_
+```
+
+### Random Search
+
+```python
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+
+def random_search_rf(X, y, n_iter=100):
+    # Parameter distribution
+    param_dist = {
+        'n_estimators': randint(50, 500),
+        'max_depth': randint(3, 20),
+        'min_samples_split': randint(2, 20),
+        'min_samples_leaf': randint(1, 10)
+    }
+    
+    # Create random search
+    random_search = RandomizedSearchCV(
+        RandomForestClassifier(),
+        param_dist,
+        n_iter=n_iter,
+        cv=5,
+        scoring='accuracy'
+    )
+    
+    random_search.fit(X, y)
+    return random_search.best_estimator_, random_search.best_params_
+```
+
+## Best Practices
+
+1. **Preventing Overfitting**
+```python
+def create_pruned_tree(X, y, ccp_alpha=0.01):
+    # Create tree with cost-complexity pruning
+    tree = DecisionTreeClassifier(ccp_alpha=ccp_alpha)
+    path = tree.cost_complexity_pruning_path(X, y)
+    
+    # Find optimal alpha
+    alphas = path.ccp_alphas
+    trees = []
+    
+    for alpha in alphas:
+        tree = DecisionTreeClassifier(ccp_alpha=alpha)
+        tree.fit(X, y)
+        trees.append(tree)
+    
+    return trees, alphas
+```
+
+2. **Feature Selection**
+```python
+def select_features_with_trees(X, y, threshold=0.01):
+    # Train random forest
+    rf = RandomForestClassifier(n_estimators=100)
+    rf.fit(X, y)
+    
+    # Select important features
+    importance = pd.DataFrame({
+        'feature': X.columns,
+        'importance': rf.feature_importances_
+    })
+    
+    selected_features = importance[
+        importance['importance'] > threshold
+    ]['feature'].tolist()
+    
+    return selected_features
+```
+
+3. **Ensemble Size Selection**
+```python
+def optimize_ensemble_size(X, y, max_estimators=500):
+    scores = []
+    n_estimators = range(1, max_estimators + 1, 10)
+    
+    for n in n_estimators:
+        rf = RandomForestClassifier(n_estimators=n)
+        score = cross_val_score(rf, X, y, cv=5).mean()
+        scores.append(score)
+    
+    optimal_n = n_estimators[np.argmax(scores)]
+    return optimal_n, scores
+``` 

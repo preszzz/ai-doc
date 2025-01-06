@@ -1,0 +1,290 @@
+---
+title: 'Gradient Descent'
+description: 'Understanding and implementing various gradient descent optimization algorithms'
+icon: 'trending-down'
+draft: false
+---
+
+Gradient descent is a fundamental optimization algorithm used to minimize loss functions in machine learning models.
+
+## Basic Gradient Descent
+
+### Mathematical Foundation
+
+The update rule for gradient descent:
+
+```math
+\theta_{t+1} = \theta_t - \alpha \nabla_\theta J(\theta)
+```
+
+where:
+- θ is the parameter vector
+- α is the learning rate
+- J(θ) is the loss function
+
+```python
+def gradient_descent(X, y, theta, alpha, n_iterations):
+    m = len(y)
+    cost_history = []
+    
+    for i in range(n_iterations):
+        # Compute predictions
+        h = X @ theta
+        
+        # Compute gradients
+        gradients = (1/m) * X.T @ (h - y)
+        
+        # Update parameters
+        theta = theta - alpha * gradients
+        
+        # Compute cost
+        cost = (1/(2*m)) * np.sum((h - y)**2)
+        cost_history.append(cost)
+    
+    return theta, cost_history
+```
+
+## Variants of Gradient Descent
+
+### Stochastic Gradient Descent (SGD)
+
+```python
+def sgd(X, y, theta, alpha, n_epochs):
+    m = len(y)
+    cost_history = []
+    
+    for epoch in range(n_epochs):
+        # Shuffle data
+        indices = np.random.permutation(m)
+        X = X[indices]
+        y = y[indices]
+        
+        for i in range(m):
+            # Compute gradient for single example
+            h = X[i:i+1] @ theta
+            gradient = X[i:i+1].T * (h - y[i:i+1])
+            
+            # Update parameters
+            theta = theta - alpha * gradient
+        
+        # Compute cost for epoch
+        h = X @ theta
+        cost = (1/(2*m)) * np.sum((h - y)**2)
+        cost_history.append(cost)
+    
+    return theta, cost_history
+```
+
+### Mini-batch Gradient Descent
+
+```python
+def minibatch_gradient_descent(X, y, theta, alpha, batch_size, n_epochs):
+    m = len(y)
+    cost_history = []
+    
+    for epoch in range(n_epochs):
+        # Shuffle data
+        indices = np.random.permutation(m)
+        X = X[indices]
+        y = y[indices]
+        
+        # Process mini-batches
+        for i in range(0, m, batch_size):
+            X_batch = X[i:i+batch_size]
+            y_batch = y[i:i+batch_size]
+            
+            # Compute gradients
+            h = X_batch @ theta
+            gradients = (1/batch_size) * X_batch.T @ (h - y_batch)
+            
+            # Update parameters
+            theta = theta - alpha * gradients
+        
+        # Compute cost for epoch
+        h = X @ theta
+        cost = (1/(2*m)) * np.sum((h - y)**2)
+        cost_history.append(cost)
+    
+    return theta, cost_history
+```
+
+## Advanced Optimization Algorithms
+
+### Momentum
+
+```python
+def momentum_gradient_descent(X, y, theta, alpha, beta=0.9, n_iterations=1000):
+    m = len(y)
+    velocity = np.zeros_like(theta)
+    cost_history = []
+    
+    for i in range(n_iterations):
+        # Compute gradients
+        h = X @ theta
+        gradients = (1/m) * X.T @ (h - y)
+        
+        # Update velocity
+        velocity = beta * velocity + alpha * gradients
+        
+        # Update parameters
+        theta = theta - velocity
+        
+        # Compute cost
+        cost = (1/(2*m)) * np.sum((h - y)**2)
+        cost_history.append(cost)
+    
+    return theta, cost_history
+```
+
+### RMSprop
+
+```python
+def rmsprop(X, y, theta, alpha=0.001, beta=0.9, epsilon=1e-8, n_iterations=1000):
+    m = len(y)
+    v = np.zeros_like(theta)
+    cost_history = []
+    
+    for i in range(n_iterations):
+        # Compute gradients
+        h = X @ theta
+        gradients = (1/m) * X.T @ (h - y)
+        
+        # Update accumulator
+        v = beta * v + (1 - beta) * gradients**2
+        
+        # Update parameters
+        theta = theta - (alpha / (np.sqrt(v) + epsilon)) * gradients
+        
+        # Compute cost
+        cost = (1/(2*m)) * np.sum((h - y)**2)
+        cost_history.append(cost)
+    
+    return theta, cost_history
+```
+
+### Adam Optimizer
+
+```python
+def adam(X, y, theta, alpha=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, n_iterations=1000):
+    m = len(y)
+    v = np.zeros_like(theta)  # Second moment estimate
+    s = np.zeros_like(theta)  # First moment estimate
+    cost_history = []
+    
+    for t in range(1, n_iterations + 1):
+        # Compute gradients
+        h = X @ theta
+        gradients = (1/m) * X.T @ (h - y)
+        
+        # Update moment estimates
+        s = beta1 * s + (1 - beta1) * gradients
+        v = beta2 * v + (1 - beta2) * gradients**2
+        
+        # Compute bias-corrected moments
+        s_corrected = s / (1 - beta1**t)
+        v_corrected = v / (1 - beta2**t)
+        
+        # Update parameters
+        theta = theta - alpha * s_corrected / (np.sqrt(v_corrected) + epsilon)
+        
+        # Compute cost
+        cost = (1/(2*m)) * np.sum((h - y)**2)
+        cost_history.append(cost)
+    
+    return theta, cost_history
+```
+
+## Learning Rate Scheduling
+
+### Step Decay
+
+```python
+def step_decay_schedule(initial_lr, drop_factor=0.5, epochs_drop=10):
+    def schedule(epoch):
+        return initial_lr * (drop_factor ** np.floor(epoch/epochs_drop))
+    return schedule
+```
+
+### Exponential Decay
+
+```python
+def exponential_decay_schedule(initial_lr, decay_rate=0.1):
+    def schedule(epoch):
+        return initial_lr * np.exp(-decay_rate * epoch)
+    return schedule
+```
+
+### Cosine Annealing
+
+```python
+def cosine_annealing_schedule(initial_lr, T_max):
+    def schedule(epoch):
+        return initial_lr * (1 + np.cos(np.pi * epoch / T_max)) / 2
+    return schedule
+```
+
+## Visualization Tools
+
+```python
+def plot_convergence(cost_history):
+    plt.figure(figsize=(10, 6))
+    plt.plot(cost_history)
+    plt.xlabel('Iteration')
+    plt.ylabel('Cost')
+    plt.title('Convergence Curve')
+    plt.yscale('log')
+    return plt
+
+def plot_parameter_trajectory(parameter_history):
+    plt.figure(figsize=(10, 6))
+    for i in range(parameter_history.shape[1]):
+        plt.plot(parameter_history[:, i], label=f'Parameter {i}')
+    plt.xlabel('Iteration')
+    plt.ylabel('Parameter Value')
+    plt.title('Parameter Trajectories')
+    plt.legend()
+    return plt
+```
+
+## Best Practices
+
+1. **Learning Rate Selection**
+```python
+def find_optimal_learning_rate(X, y, theta_init, lr_range=np.logspace(-4, 0, 100)):
+    results = []
+    
+    for lr in lr_range:
+        theta, cost_history = gradient_descent(
+            X, y, theta_init.copy(),
+            alpha=lr, n_iterations=100
+        )
+        results.append({
+            'lr': lr,
+            'final_cost': cost_history[-1],
+            'convergence': len(cost_history) > 1 and 
+                          cost_history[-1] < cost_history[0]
+        })
+    
+    return pd.DataFrame(results)
+```
+
+2. **Gradient Clipping**
+```python
+def clip_gradients(gradients, max_norm):
+    norm = np.linalg.norm(gradients)
+    if norm > max_norm:
+        gradients = gradients * (max_norm / norm)
+    return gradients
+```
+
+3. **Convergence Checking**
+```python
+def check_convergence(cost_history, tolerance=1e-6, window=10):
+    if len(cost_history) < window:
+        return False
+    
+    recent_costs = cost_history[-window:]
+    cost_change = np.abs(np.diff(recent_costs)).mean()
+    
+    return cost_change < tolerance
+```
