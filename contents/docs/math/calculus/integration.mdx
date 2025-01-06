@@ -1,0 +1,207 @@
+---
+title: "Integration"
+description: "Understanding integrals, their properties, and applications in machine learning and probability theory."
+---
+
+Integration is a fundamental concept in calculus that measures accumulated change and area. In machine learning, it plays a crucial role in probability theory and various algorithms.
+
+## Fundamentals of Integration
+
+### Basic Concepts
+- Definite integral: $\int_a^b f(x)dx = \lim_{n \to \infty} \sum_{i=1}^n f(x_i)\Delta x$
+- Indefinite integral: $\int f(x)dx = F(x) + C$
+- Fundamental theorem of calculus: $\int_a^b f(x)dx = F(b) - F(a)$
+- Geometric interpretation: Area under curve
+
+```python
+import numpy as np
+from scipy import integrate
+
+# Basic numerical integration
+def numerical_integration(f, a, b, n=1000):
+    x = np.linspace(a, b, n)
+    return np.trapz(f(x), x)
+
+# Example usage
+def f(x): return np.sin(x)
+result = numerical_integration(f, 0, np.pi)
+```
+
+### Integration Techniques
+1. **Substitution Method**
+   - $\int f(g(x))g'(x)dx = \int f(u)du$ where $u = g(x)$
+   ```python
+   def substitution_example(f, g, dg, x):
+       u = g(x)
+       return integrate.quad(lambda u: f(u) * dg(u), g(x[0]), g(x[-1]))
+   ```
+
+2. **Integration by Parts**
+   - $\int udv = uv - \int vdu$
+   ```python
+   def parts_example(u, dv, a, b):
+       v = integrate.cumtrapz(dv, initial=0)
+       du = np.gradient(u)
+       return u[-1]*v[-1] - u[0]*v[0] - integrate.trapz(v * du)
+   ```
+
+## Types of Integrals
+
+### Definite Integrals
+```python
+def definite_integral_methods():
+    # Rectangle method
+    def rectangle(f, a, b, n):
+        x = np.linspace(a, b, n+1)
+        return (b-a)/n * np.sum(f(x[:-1]))
+    
+    # Trapezoidal method
+    def trapezoidal(f, a, b, n):
+        x = np.linspace(a, b, n+1)
+        return (b-a)/(2*n) * (f(a) + 2*np.sum(f(x[1:-1])) + f(b))
+    
+    # Simpson's method
+    def simpson(f, a, b, n):
+        if n % 2 != 0:
+            n += 1
+        x = np.linspace(a, b, n+1)
+        return (b-a)/(3*n) * (f(a) + 4*np.sum(f(x[1:-1:2])) + 
+                             2*np.sum(f(x[2:-1:2])) + f(b))
+    
+    return rectangle, trapezoidal, simpson
+```
+
+### Multiple Integration
+1. **Double Integrals**
+   - Definition: $\int\int_D f(x,y)dxdy$
+   ```python
+   def double_integral(f, bounds, nx=50, ny=50):
+       (xa, xb), (ya, yb) = bounds
+       x = np.linspace(xa, xb, nx)
+       y = np.linspace(ya, yb, ny)
+       X, Y = np.meshgrid(x, y)
+       Z = f(X, Y)
+       return integrate.simps([integrate.simps(z, x) for z in Z], y)
+   ```
+
+2. **Triple Integrals**
+   ```python
+   def triple_integral(f, bounds, n=20):
+       (xa, xb), (ya, yb), (za, zb) = bounds
+       x = np.linspace(xa, xb, n)
+       y = np.linspace(ya, yb, n)
+       z = np.linspace(za, zb, n)
+       X, Y, Z = np.meshgrid(x, y, z)
+       V = f(X, Y, Z)
+       return integrate.simps(integrate.simps(integrate.simps(V, x), y), z)
+   ```
+
+## Applications in Machine Learning
+
+### Probability Theory
+```python
+class ProbabilityIntegrals:
+    @staticmethod
+    def expected_value(pdf, bounds, params):
+        """Compute expected value of a continuous distribution"""
+        def integrand(x):
+            return x * pdf(x, *params)
+        return integrate.quad(integrand, *bounds)[0]
+    
+    @staticmethod
+    def variance(pdf, mean, bounds, params):
+        """Compute variance of a continuous distribution"""
+        def integrand(x):
+            return (x - mean)**2 * pdf(x, *params)
+        return integrate.quad(integrand, *bounds)[0]
+```
+
+### Statistical Learning
+```python
+def likelihood_integration(likelihood, prior, bounds):
+    """Compute marginal likelihood via integration"""
+    def integrand(theta):
+        return likelihood(theta) * prior(theta)
+    return integrate.quad(integrand, *bounds)[0]
+```
+
+### Deep Learning
+1. **Activation Function Properties**
+   ```python
+   def activation_properties(f, bounds):
+       # Compute integral of activation function
+       integral = integrate.quad(f, *bounds)[0]
+       
+       # Compute squared integral (for variance)
+       squared_integral = integrate.quad(lambda x: f(x)**2, *bounds)[0]
+       
+       return integral, squared_integral
+   ```
+
+2. **Loss Function Analysis**
+   ```python
+   def expected_loss(loss_func, distribution, bounds):
+       def integrand(x):
+           return loss_func(x) * distribution.pdf(x)
+       return integrate.quad(integrand, *bounds)[0]
+   ```
+
+## Numerical Integration
+
+### Methods Implementation
+```python
+class NumericalIntegration:
+    @staticmethod
+    def monte_carlo(f, bounds, n_samples=10000):
+        """Monte Carlo integration"""
+        a, b = bounds
+        x = np.random.uniform(a, b, n_samples)
+        fx = f(x)
+        return (b - a) * np.mean(fx)
+    
+    @staticmethod
+    def gaussian_quadrature(f, bounds, n_points=50):
+        """Gaussian quadrature integration"""
+        x, w = np.polynomial.legendre.leggauss(n_points)
+        a, b = bounds
+        t = 0.5 * (x + 1) * (b - a) + a
+        return 0.5 * (b - a) * np.sum(w * f(t))
+```
+
+### Error Analysis
+```python
+def integration_error_analysis(f, true_value, methods, bounds):
+    errors = {}
+    for name, method in methods.items():
+        approx = method(f, *bounds)
+        errors[name] = abs(approx - true_value)
+    return errors
+```
+
+## Special Topics
+
+### Line Integrals
+```python
+def line_integral(f, curve, t_range):
+    """Compute line integral along parametric curve"""
+    def integrand(t):
+        x, y = curve(t)
+        dx_dt, dy_dt = np.gradient([x, y], t)
+        return f(x, y) * np.sqrt(dx_dt**2 + dy_dt**2)
+    
+    return integrate.quad(integrand, *t_range)[0]
+```
+
+### Surface Integrals
+```python
+def surface_integral(f, surface, u_bounds, v_bounds):
+    """Compute surface integral over parametric surface"""
+    def integrand(u, v):
+        x, y, z = surface(u, v)
+        return f(x, y, z) * np.sqrt(np.sum(np.cross(
+            np.gradient([x, y, z], u),
+            np.gradient([x, y, z], v)
+        )**2))
+    
+    return integrate.dblquad(integrand, *u_bounds, *v_bounds)[0]
+``` 

@@ -1,0 +1,186 @@
+---
+title: "Probability and Statistics"
+description: "Understanding fundamental concepts of probability and statistics essential for machine learning and data science."
+---
+
+Probability and statistics form the theoretical foundation for machine learning and data science, providing tools for understanding uncertainty, making predictions, and analyzing data.
+
+## Fundamentals of Probability
+
+### Basic Concepts
+- Sample space ($\Omega$): Set of all possible outcomes
+- Event ($A \subseteq \Omega$): Subset of sample space
+- Probability measure: $P: 2^\Omega \to [0,1]$
+- Axioms of probability:
+  1. $P(A) \geq 0$ for all events $A$
+  2. $P(\Omega) = 1$
+  3. For disjoint events: $P(\cup_i A_i) = \sum_i P(A_i)$
+
+### Probability Rules
+- Addition rule: $P(A \cup B) = P(A) + P(B) - P(A \cap B)$
+- Multiplication rule: $P(A \cap B) = P(A|B)P(B)$
+- Bayes' theorem: $P(A|B) = \frac{P(B|A)P(A)}{P(B)}$
+- Law of total probability: $P(A) = \sum_i P(A|B_i)P(B_i)$
+
+```python
+import numpy as np
+from scipy import stats
+
+# Example: Bayes' theorem implementation
+def bayes_theorem(p_a, p_b_given_a, p_b):
+    return (p_b_given_a * p_a) / p_b
+```
+
+## Random Variables
+
+### Types and Properties
+1. **Discrete Random Variables**
+   - Probability mass function (PMF): $p_X(x) = P(X = x)$
+   - Expected value: $E[X] = \sum_x x p_X(x)$
+   - Variance: $\text{Var}(X) = E[(X-\mu)^2]$
+
+2. **Continuous Random Variables**
+   - Probability density function (PDF): $f_X(x)$
+   - Expected value: $E[X] = \int_{-\infty}^{\infty} x f_X(x) dx$
+   - Variance: $\text{Var}(X) = E[(X-\mu)^2] = \int_{-\infty}^{\infty} (x-\mu)^2 f_X(x) dx$
+
+```python
+# Example: Computing statistics for random variables
+def random_variable_stats(data):
+    mean = np.mean(data)
+    variance = np.var(data)
+    std_dev = np.std(data)
+    return mean, variance, std_dev
+```
+
+## Probability Distributions
+
+### Common Distributions
+1. **Normal Distribution**
+   - PDF: $f(x) = \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}$
+   ```python
+   # Generate normal distribution
+   mu, sigma = 0, 1
+   x = np.random.normal(mu, sigma, 1000)
+   ```
+
+2. **Binomial Distribution**
+   - PMF: $P(X=k) = \binom{n}{k}p^k(1-p)^{n-k}$
+   ```python
+   # Binomial distribution example
+   n, p = 10, 0.5
+   x = np.random.binomial(n, p, 1000)
+   ```
+
+## Statistical Inference
+
+### Sampling and Estimation
+1. **Point Estimation**
+   - Maximum Likelihood Estimation (MLE):
+     $\hat{\theta} = \arg\max_\theta L(\theta|x)$
+   ```python
+   def mle_normal(data):
+       mu = np.mean(data)
+       sigma = np.std(data, ddof=1)
+       return mu, sigma
+   ```
+
+2. **Interval Estimation**
+   - Confidence Interval: $\bar{x} \pm z_{\alpha/2}\frac{s}{\sqrt{n}}$
+   ```python
+   def confidence_interval(data, confidence=0.95):
+       mean = np.mean(data)
+       std_err = stats.sem(data)
+       ci = stats.t.interval(confidence, len(data)-1, mean, std_err)
+       return ci
+   ```
+
+### Hypothesis Testing
+```python
+def t_test(sample1, sample2, alpha=0.05):
+    t_stat, p_value = stats.ttest_ind(sample1, sample2)
+    return {
+        't_statistic': t_stat,
+        'p_value': p_value,
+        'reject_null': p_value < alpha
+    }
+```
+
+## Applications in Machine Learning
+
+### Model Evaluation
+1. **Cross-validation**
+   ```python
+   from sklearn.model_selection import cross_val_score
+   
+   def cv_evaluation(model, X, y, cv=5):
+       scores = cross_val_score(model, X, y, cv=cv)
+       return np.mean(scores), np.std(scores)
+   ```
+
+2. **Performance Metrics**
+   ```python
+   from sklearn.metrics import accuracy_score, precision_score, recall_score
+   
+   def classification_metrics(y_true, y_pred):
+       return {
+           'accuracy': accuracy_score(y_true, y_pred),
+           'precision': precision_score(y_true, y_pred),
+           'recall': recall_score(y_true, y_pred)
+       }
+   ```
+
+### Probabilistic Models
+1. **Naive Bayes**
+   ```python
+   from sklearn.naive_bayes import GaussianNB
+   
+   def train_naive_bayes(X_train, y_train):
+       model = GaussianNB()
+       model.fit(X_train, y_train)
+       return model
+   ```
+
+2. **Gaussian Processes**
+   ```python
+   from sklearn.gaussian_process import GaussianProcessRegressor
+   
+   def train_gp(X_train, y_train):
+       gp = GaussianProcessRegressor()
+       gp.fit(X_train, y_train)
+       return gp
+   ```
+
+## Advanced Topics
+
+### Information Theory
+- Entropy: $H(X) = -\sum_x p(x)\log p(x)$
+- KL Divergence: $D_{KL}(P||Q) = \sum_x p(x)\log\frac{p(x)}{q(x)}$
+```python
+def entropy(probabilities):
+    return -np.sum(probabilities * np.log2(probabilities + 1e-10))
+```
+
+### Bayesian Methods
+```python
+def bayesian_update(prior, likelihood, evidence):
+    return (likelihood * prior) / evidence
+```
+
+## Practical Considerations
+
+### Implementation
+```python
+# Example: Bootstrap sampling
+def bootstrap_sample(data, num_samples=1000):
+    n = len(data)
+    indices = np.random.randint(0, n, (num_samples, n))
+    samples = data[indices]
+    return np.mean(samples, axis=1)
+```
+
+### Common Challenges
+- Missing data handling
+- Outlier detection
+- Sample size determination
+- Multiple testing correction 

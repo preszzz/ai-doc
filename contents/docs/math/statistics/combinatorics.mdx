@@ -1,0 +1,227 @@
+---
+title: "Combinatorics"
+description: "Understanding counting principles and their applications in probability and machine learning."
+---
+
+Combinatorics is the branch of mathematics dealing with counting, arrangement, and combination of objects. It provides essential tools for probability theory and discrete mathematics.
+
+## Fundamental Principles
+
+### Counting Principles
+1. **Multiplication Principle**
+   - If task A can be done in $m$ ways and task B in $n$ ways, then tasks A and B can be done in $m \times n$ ways
+   ```python
+   def multiplication_principle(ways_per_task):
+       return np.prod(ways_per_task)
+   ```
+
+2. **Addition Principle**
+   - If task A can be done in $m$ ways and task B in $n$ ways (mutually exclusive), then either A or B can be done in $m + n$ ways
+   ```python
+   def addition_principle(ways_per_task):
+       return np.sum(ways_per_task)
+   ```
+
+3. **Inclusion-Exclusion Principle**
+   - $|A \cup B| = |A| + |B| - |A \cap B|$
+   - General form: $|\cup_{i=1}^n A_i| = \sum_{k=1}^n (-1)^{k-1} \sum_{|I|=k} |\cap_{i \in I} A_i|$
+   ```python
+   def inclusion_exclusion(sets):
+       n = len(sets)
+       result = 0
+       for k in range(1, n + 1):
+           sign = (-1)**(k-1)
+           for subset in itertools.combinations(sets, k):
+               intersection = set.intersection(*subset)
+               result += sign * len(intersection)
+       return result
+   ```
+
+### Basic Concepts
+```python
+class CombinatoricsCalculator:
+    @staticmethod
+    def factorial(n):
+        """Compute n!"""
+        if n < 0:
+            raise ValueError("Factorial undefined for negative numbers")
+        return math.factorial(n)
+    
+    @staticmethod
+    def falling_factorial(n, k):
+        """Compute n(n-1)...(n-k+1)"""
+        return np.prod([n - i for i in range(k)])
+    
+    @staticmethod
+    def rising_factorial(n, k):
+        """Compute n(n+1)...(n+k-1)"""
+        return np.prod([n + i for i in range(k)])
+```
+
+## Types of Counting
+
+### Permutations
+1. **Without Repetition**
+   - $P(n) = n!$
+   - $P(n,r) = \frac{n!}{(n-r)!}$
+   ```python
+   def permutation(n, r=None):
+       if r is None:
+           r = n
+       return math.factorial(n) // math.factorial(n - r)
+   ```
+
+2. **With Repetition**
+   - $P(n; k_1,k_2,\ldots,k_m) = \frac{n!}{k_1!k_2!\cdots k_m!}$
+   ```python
+   def permutation_with_repetition(n, repetitions):
+       denominator = np.prod([math.factorial(k) for k in repetitions])
+       return math.factorial(n) // denominator
+   ```
+
+### Combinations
+1. **Without Repetition**
+   - $C(n,r) = \binom{n}{r} = \frac{n!}{r!(n-r)!}$
+   ```python
+   def combination(n, r):
+       return math.factorial(n) // (math.factorial(r) * math.factorial(n - r))
+   ```
+
+2. **With Repetition**
+   - $C_R(n,r) = \binom{n+r-1}{r} = \frac{(n+r-1)!}{r!(n-1)!}$
+   ```python
+   def combination_with_repetition(n, r):
+       return combination(n + r - 1, r)
+   ```
+
+## Advanced Topics
+
+### Generating Functions
+```python
+class GeneratingFunctions:
+    @staticmethod
+    def ordinary_generating_function(coefficients, x):
+        """Compute sum(a_n * x^n)"""
+        return np.sum([a * x**n for n, a in enumerate(coefficients)])
+    
+    @staticmethod
+    def exponential_generating_function(coefficients, x):
+        """Compute sum(a_n * x^n/n!)"""
+        return np.sum([a * x**n/math.factorial(n) 
+                      for n, a in enumerate(coefficients)])
+```
+
+### Recurrence Relations
+```python
+def solve_linear_recurrence(coefficients, initial_conditions, n):
+    """Solve linear recurrence relation up to n terms"""
+    sequence = list(initial_conditions)
+    k = len(coefficients)
+    
+    for i in range(k, n):
+        next_term = sum(c * sequence[i-j-1] 
+                       for j, c in enumerate(coefficients))
+        sequence.append(next_term)
+    
+    return sequence
+```
+
+## Applications in Probability
+
+### Discrete Probability
+```python
+class DiscreteProbability:
+    @staticmethod
+    def binomial_probability(n, k, p):
+        """P(X = k) in n trials with probability p"""
+        return combination(n, k) * p**k * (1-p)**(n-k)
+    
+    @staticmethod
+    def multinomial_probability(n, outcomes, probs):
+        """Probability of specific outcome counts in n trials"""
+        coef = math.factorial(n)
+        denominator = np.prod([math.factorial(k) for k in outcomes])
+        prob_term = np.prod([p**k for p, k in zip(probs, outcomes)])
+        return (coef / denominator) * prob_term
+```
+
+### Distribution Theory
+```python
+def hypergeometric_distribution(N, K, n, k):
+    """Probability of k successes in n draws without replacement"""
+    numerator = combination(K, k) * combination(N-K, n-k)
+    denominator = combination(N, n)
+    return numerator / denominator
+```
+
+## Applications in Machine Learning
+
+### Feature Engineering
+```python
+class FeatureEngineering:
+    @staticmethod
+    def generate_polynomial_features(X, degree):
+        """Generate polynomial feature combinations"""
+        n_samples, n_features = X.shape
+        combinations = []
+        for d in range(1, degree + 1):
+            for combo in itertools.combinations_with_replacement(
+                range(n_features), d):
+                combinations.append(combo)
+        
+        features = np.ones((n_samples, len(combinations)))
+        for i, combo in enumerate(combinations):
+            features[:, i] = np.prod(X[:, combo], axis=1)
+        return features
+```
+
+### Model Architecture
+```python
+def count_network_configurations(layers):
+    """Count possible neural network configurations"""
+    total_connections = 0
+    for i in range(len(layers)-1):
+        connections = layers[i] * layers[i+1]  # Dense connections
+        total_connections += connections
+    
+    # Count possible binary configurations (active/inactive)
+    return 2**total_connections
+```
+
+## Special Topics
+
+### Graph Theory
+```python
+class GraphCounting:
+    @staticmethod
+    def count_spanning_trees(adjacency_matrix):
+        """Use Kirchhoff's matrix tree theorem"""
+        n = len(adjacency_matrix)
+        degree_matrix = np.diag(np.sum(adjacency_matrix, axis=1))
+        laplacian = degree_matrix - adjacency_matrix
+        eigenvals = np.linalg.eigvals(laplacian[1:, 1:])
+        return np.prod(eigenvals[eigenvals > 1e-10]).real / n
+    
+    @staticmethod
+    def count_paths(adjacency_matrix, length):
+        """Count paths of given length using matrix multiplication"""
+        return np.linalg.matrix_power(adjacency_matrix, length)
+```
+
+### Optimization Problems
+```python
+def count_feasible_solutions(constraints, bounds):
+    """Count integer solutions satisfying linear constraints"""
+    A, b = constraints
+    lower, upper = bounds
+    
+    def is_feasible(x):
+        return np.all(np.dot(A, x) <= b)
+    
+    count = 0
+    for x in itertools.product(
+        *[range(lower, upper+1) for _ in range(A.shape[1])]):
+        if is_feasible(x):
+            count += 1
+    return count
+``` 

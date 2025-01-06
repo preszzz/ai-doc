@@ -1,0 +1,249 @@
+---
+title: "Optimization"
+description: "Understanding optimization techniques and their applications in machine learning algorithms."
+---
+
+Optimization is a crucial aspect of machine learning, involving finding the best parameters or solutions that minimize or maximize specific objective functions.
+
+## Fundamentals of Optimization
+
+### Basic Concepts
+- Objective function: $f(\mathbf{x}): \mathbb{R}^n \to \mathbb{R}$
+- Constraints: $g_i(\mathbf{x}) \leq 0$, $h_j(\mathbf{x}) = 0$
+- Local minimum: $f(\mathbf{x}^*) \leq f(\mathbf{x})$ for all $\mathbf{x}$ near $\mathbf{x}^*$
+- Global minimum: $f(\mathbf{x}^*) \leq f(\mathbf{x})$ for all feasible $\mathbf{x}$
+- Convexity: $f(\lambda \mathbf{x} + (1-\lambda)\mathbf{y}) \leq \lambda f(\mathbf{x}) + (1-\lambda)f(\mathbf{y})$
+
+### Optimality Conditions
+1. **First-order conditions**
+   - Gradient: $\nabla f(\mathbf{x}^*) = \mathbf{0}$
+   - Directional derivative: $\nabla f(\mathbf{x}^*)^T\mathbf{d} \geq 0$
+
+2. **Second-order conditions**
+   - Hessian positive definite: $\mathbf{d}^T\nabla^2f(\mathbf{x}^*)\mathbf{d} > 0$
+   - For local minimum: $\nabla^2f(\mathbf{x}^*)$ positive semidefinite
+
+```python
+import numpy as np
+from scipy.optimize import minimize
+
+def check_optimality(f, x, eps=1e-6):
+    # Compute gradient
+    grad = np.gradient(f(x))
+    
+    # Compute Hessian
+    hess = np.array([[
+        (f(x + eps*ei + eps*ej) - f(x + eps*ei) - f(x + eps*ej) + f(x))/(eps**2)
+        for ei in np.eye(len(x))]
+        for ej in np.eye(len(x))
+    ])
+    
+    # Check conditions
+    is_stationary = np.all(np.abs(grad) < eps)
+    is_min = np.all(np.linalg.eigvals(hess) > -eps)
+    
+    return is_stationary, is_min
+```
+
+## Gradient-Based Methods
+
+### Gradient Descent
+- Update rule: $\mathbf{x}_{k+1} = \mathbf{x}_k - \alpha_k\nabla f(\mathbf{x}_k)$
+```python
+class GradientDescent:
+    def __init__(self, learning_rate=0.01, max_iter=1000, tol=1e-6):
+        self.lr = learning_rate
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, f, grad_f, x0):
+        x = x0
+        history = [x0]
+        
+        for _ in range(self.max_iter):
+            grad = grad_f(x)
+            if np.linalg.norm(grad) < self.tol:
+                break
+                
+            x = x - self.lr * grad
+            history.append(x)
+            
+        return x, history
+```
+
+### Advanced Gradient Methods
+1. **Momentum**
+   - Update: $\mathbf{v}_{k+1} = \beta\mathbf{v}_k + \nabla f(\mathbf{x}_k)$
+   - Position: $\mathbf{x}_{k+1} = \mathbf{x}_k - \alpha\mathbf{v}_{k+1}$
+   ```python
+   def momentum_update(x, v, grad, lr=0.01, beta=0.9):
+       v = beta * v + grad
+       x = x - lr * v
+       return x, v
+   ```
+
+2. **Adam Optimizer**
+   ```python
+   class Adam:
+       def __init__(self, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
+           self.lr = lr
+           self.beta1 = beta1
+           self.beta2 = beta2
+           self.eps = eps
+           self.m = None
+           self.v = None
+           self.t = 0
+       
+       def update(self, params, grads):
+           if self.m is None:
+               self.m = np.zeros_like(params)
+               self.v = np.zeros_like(params)
+           
+           self.t += 1
+           self.m = self.beta1 * self.m + (1 - self.beta1) * grads
+           self.v = self.beta2 * self.v + (1 - self.beta2) * grads**2
+           
+           m_hat = self.m / (1 - self.beta1**self.t)
+           v_hat = self.v / (1 - self.beta2**self.t)
+           
+           return params - self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
+   ```
+
+## Constrained Optimization
+
+### Equality Constraints
+- Lagrangian: $L(\mathbf{x}, \boldsymbol{\lambda}) = f(\mathbf{x}) + \sum_i \lambda_i h_i(\mathbf{x})$
+```python
+def lagrangian_optimization(f, h, x0, lambda0):
+    def lagrangian(x_lambda):
+        x, lambda_ = x_lambda[:len(x0)], x_lambda[len(x0):]
+        return f(x) + np.sum(lambda_ * h(x))
+    
+    result = minimize(lagrangian, np.concatenate([x0, lambda0]))
+    return result.x[:len(x0)], result.x[len(x0):]
+```
+
+### Inequality Constraints
+- KKT conditions:
+  1. $\nabla f(\mathbf{x}^*) + \sum_i \lambda_i \nabla g_i(\mathbf{x}^*) = \mathbf{0}$
+  2. $\lambda_i g_i(\mathbf{x}^*) = 0$
+  3. $\lambda_i \geq 0$
+```python
+def barrier_method(f, g, x0, mu=1.0, beta=0.5):
+    def barrier(x):
+        return f(x) - mu * np.sum(np.log(-g(x)))
+    
+    x = x0
+    while mu > 1e-6:
+        result = minimize(barrier, x)
+        x = result.x
+        mu *= beta
+    
+    return x
+```
+
+## Applications in Machine Learning
+
+### Neural Networks
+```python
+class NeuralNetworkOptimizer:
+    def __init__(self, model, optimizer='adam'):
+        self.model = model
+        self.optimizer = Adam() if optimizer == 'adam' else GradientDescent()
+    
+    def train_step(self, X, y):
+        # Forward pass
+        predictions = self.model.forward(X)
+        loss = self.model.loss(predictions, y)
+        
+        # Backward pass
+        gradients = self.model.backward()
+        
+        # Update parameters
+        for param, grad in zip(self.model.parameters(), gradients):
+            param.data = self.optimizer.update(param.data, grad)
+        
+        return loss
+```
+
+### Support Vector Machines
+```python
+def svm_dual_optimization(X, y, C=1.0):
+    n_samples = len(y)
+    K = np.dot(X, X.T)  # kernel matrix
+    
+    def dual_objective(alpha):
+        return -0.5 * np.sum(np.outer(alpha*y, alpha*y) * K) + np.sum(alpha)
+    
+    constraints = [
+        {'type': 'eq', 'fun': lambda alpha: np.dot(alpha, y)},
+        {'type': 'ineq', 'fun': lambda alpha: alpha},
+        {'type': 'ineq', 'fun': lambda alpha: C - alpha}
+    ]
+    
+    result = minimize(dual_objective, np.zeros(n_samples),
+                     constraints=constraints, method='SLSQP')
+    return result.x
+```
+
+## Numerical Optimization
+
+### Line Search Methods
+```python
+def backtracking_line_search(f, x, p, alpha=0.5, beta=0.8):
+    t = 1.0
+    while f(x + t*p) > f(x) + alpha*t*np.dot(grad(f, x), p):
+        t *= beta
+    return t
+```
+
+### Trust Region Methods
+```python
+def trust_region_subproblem(g, H, delta):
+    """Solve the trust region subproblem"""
+    n = len(g)
+    def objective(p):
+        return np.dot(g, p) + 0.5 * np.dot(p, np.dot(H, p))
+    
+    constraints = [{'type': 'ineq', 'fun': lambda p: delta - np.linalg.norm(p)}]
+    result = minimize(objective, np.zeros(n), constraints=constraints)
+    return result.x
+```
+
+## Advanced Topics
+
+### Stochastic Optimization
+```python
+def sgd_with_momentum(f, grad_f, x0, batch_size=32, n_epochs=100):
+    x = x0
+    v = np.zeros_like(x0)
+    
+    for _ in range(n_epochs):
+        # Shuffle data
+        indices = np.random.permutation(len(data))
+        
+        for i in range(0, len(data), batch_size):
+            batch_idx = indices[i:i+batch_size]
+            grad = grad_f(x, data[batch_idx])
+            x, v = momentum_update(x, v, grad)
+    
+    return x
+```
+
+### Meta-optimization
+```python
+def grid_search_optimization(model, param_grid, X, y):
+    best_score = float('-inf')
+    best_params = None
+    
+    for params in itertools.product(*param_grid.values()):
+        param_dict = dict(zip(param_grid.keys(), params))
+        model.set_params(**param_dict)
+        score = cross_val_score(model, X, y).mean()
+        
+        if score > best_score:
+            best_score = score
+            best_params = param_dict
+    
+    return best_params, best_score
+``` 

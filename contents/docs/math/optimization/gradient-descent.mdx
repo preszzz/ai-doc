@@ -1,0 +1,292 @@
+---
+title: "Gradient Descent"
+description: "Understanding gradient descent algorithms and their variants in optimization."
+---
+
+Gradient descent is a fundamental optimization algorithm that iteratively moves in the direction of steepest descent to minimize an objective function.
+
+## Basic Gradient Descent
+
+### Vanilla Gradient Descent
+- Update rule: $\theta_{t+1} = \theta_t - \alpha \nabla f(\theta_t)$
+```python
+class VanillaGradientDescent:
+    def __init__(self, learning_rate=0.01, max_iter=1000, tol=1e-6):
+        self.learning_rate = learning_rate
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, objective_fn, gradient_fn, initial_params):
+        """Basic gradient descent optimization"""
+        params = initial_params.copy()
+        history = {'params': [], 'objective': []}
+        
+        for i in range(self.max_iter):
+            # Record history
+            history['params'].append(params.copy())
+            history['objective'].append(objective_fn(params))
+            
+            # Compute gradient and update
+            grad = gradient_fn(params)
+            params = params - self.learning_rate * grad
+            
+            # Check convergence
+            if np.linalg.norm(grad) < self.tol:
+                break
+        
+        return params, history
+```
+
+### Mini-batch Gradient Descent
+```python
+class MiniBatchGradientDescent:
+    def __init__(self, learning_rate=0.01, batch_size=32, 
+                 max_epochs=100, tol=1e-6):
+        self.learning_rate = learning_rate
+        self.batch_size = batch_size
+        self.max_epochs = max_epochs
+        self.tol = tol
+    
+    def optimize(self, objective_fn, gradient_fn, data, initial_params):
+        """Mini-batch gradient descent"""
+        params = initial_params.copy()
+        n_samples = len(data)
+        n_batches = n_samples // self.batch_size
+        history = {'loss': []}
+        
+        for epoch in range(self.max_epochs):
+            epoch_loss = 0
+            # Shuffle data
+            indices = np.random.permutation(n_samples)
+            
+            for i in range(n_batches):
+                # Get batch
+                batch_idx = indices[i*self.batch_size:(i+1)*self.batch_size]
+                batch = data[batch_idx]
+                
+                # Compute gradient and update
+                grad = gradient_fn(params, batch)
+                params = params - self.learning_rate * grad
+                
+                # Compute loss
+                loss = objective_fn(params, batch)
+                epoch_loss += loss
+            
+            avg_loss = epoch_loss / n_batches
+            history['loss'].append(avg_loss)
+            
+            if avg_loss < self.tol:
+                break
+        
+        return params, history
+```
+
+## Advanced Variants
+
+### Momentum
+```python
+class MomentumGradientDescent:
+    def __init__(self, learning_rate=0.01, momentum=0.9, 
+                 max_iter=1000, tol=1e-6):
+        self.learning_rate = learning_rate
+        self.momentum = momentum
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, objective_fn, gradient_fn, initial_params):
+        """Gradient descent with momentum"""
+        params = initial_params.copy()
+        velocity = np.zeros_like(params)
+        history = {'params': [], 'velocity': []}
+        
+        for i in range(self.max_iter):
+            # Record history
+            history['params'].append(params.copy())
+            history['velocity'].append(velocity.copy())
+            
+            # Compute gradient
+            grad = gradient_fn(params)
+            
+            # Update velocity and parameters
+            velocity = self.momentum * velocity - self.learning_rate * grad
+            params = params + velocity
+            
+            if np.linalg.norm(grad) < self.tol:
+                break
+        
+        return params, history
+```
+
+### Nesterov Accelerated Gradient
+```python
+class NesterovGradientDescent:
+    def __init__(self, learning_rate=0.01, momentum=0.9, 
+                 max_iter=1000, tol=1e-6):
+        self.learning_rate = learning_rate
+        self.momentum = momentum
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, objective_fn, gradient_fn, initial_params):
+        """Nesterov accelerated gradient descent"""
+        params = initial_params.copy()
+        velocity = np.zeros_like(params)
+        
+        for i in range(self.max_iter):
+            # Look ahead
+            lookahead = params + self.momentum * velocity
+            
+            # Compute gradient at lookahead point
+            grad = gradient_fn(lookahead)
+            
+            # Update velocity and parameters
+            velocity = self.momentum * velocity - self.learning_rate * grad
+            params = params + velocity
+            
+            if np.linalg.norm(grad) < self.tol:
+                break
+        
+        return params
+```
+
+## Adaptive Methods
+
+### AdaGrad
+```python
+class AdaGrad:
+    def __init__(self, learning_rate=0.01, epsilon=1e-8, 
+                 max_iter=1000, tol=1e-6):
+        self.learning_rate = learning_rate
+        self.epsilon = epsilon
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, objective_fn, gradient_fn, initial_params):
+        """AdaGrad optimization"""
+        params = initial_params.copy()
+        accumulated_grad = np.zeros_like(params)
+        
+        for i in range(self.max_iter):
+            grad = gradient_fn(params)
+            
+            # Accumulate squared gradients
+            accumulated_grad += grad**2
+            
+            # Compute update
+            update = self.learning_rate * grad / \
+                    (np.sqrt(accumulated_grad) + self.epsilon)
+            params = params - update
+            
+            if np.linalg.norm(grad) < self.tol:
+                break
+        
+        return params
+```
+
+### RMSprop
+```python
+class RMSprop:
+    def __init__(self, learning_rate=0.001, decay_rate=0.9, 
+                 epsilon=1e-8, max_iter=1000, tol=1e-6):
+        self.learning_rate = learning_rate
+        self.decay_rate = decay_rate
+        self.epsilon = epsilon
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def optimize(self, objective_fn, gradient_fn, initial_params):
+        """RMSprop optimization"""
+        params = initial_params.copy()
+        moving_avg = np.zeros_like(params)
+        
+        for i in range(self.max_iter):
+            grad = gradient_fn(params)
+            
+            # Update moving average
+            moving_avg = self.decay_rate * moving_avg + \
+                        (1 - self.decay_rate) * grad**2
+            
+            # Compute update
+            update = self.learning_rate * grad / \
+                    (np.sqrt(moving_avg) + self.epsilon)
+            params = params - update
+            
+            if np.linalg.norm(grad) < self.tol:
+                break
+        
+        return params
+```
+
+## Learning Rate Schedules
+
+### Step Decay
+```python
+class StepDecaySchedule:
+    def __init__(self, initial_lr=0.1, drop_factor=0.5, 
+                 steps_per_drop=10):
+        self.initial_lr = initial_lr
+        self.drop_factor = drop_factor
+        self.steps_per_drop = steps_per_drop
+    
+    def get_learning_rate(self, step):
+        """Compute learning rate for current step"""
+        exponent = step // self.steps_per_drop
+        return self.initial_lr * (self.drop_factor ** exponent)
+```
+
+### Exponential Decay
+```python
+class ExponentialDecaySchedule:
+    def __init__(self, initial_lr=0.1, decay_rate=0.95):
+        self.initial_lr = initial_lr
+        self.decay_rate = decay_rate
+    
+    def get_learning_rate(self, step):
+        """Compute learning rate for current step"""
+        return self.initial_lr * (self.decay_rate ** step)
+```
+
+## Practical Considerations
+
+### Learning Rate Selection
+```python
+class LearningRateSelector:
+    def __init__(self, model, objective_fn, gradient_fn):
+        self.model = model
+        self.objective_fn = objective_fn
+        self.gradient_fn = gradient_fn
+    
+    def grid_search(self, learning_rates, n_epochs=10):
+        """Find best learning rate using grid search"""
+        results = []
+        
+        for lr in learning_rates:
+            optimizer = VanillaGradientDescent(learning_rate=lr, 
+                                             max_iter=n_epochs)
+            _, history = optimizer.optimize(
+                self.objective_fn,
+                self.gradient_fn,
+                self.model.get_params()
+            )
+            
+            results.append({
+                'learning_rate': lr,
+                'final_loss': history['objective'][-1]
+            })
+        
+        return min(results, key=lambda x: x['final_loss'])
+```
+
+### Gradient Clipping
+```python
+class GradientClipper:
+    def __init__(self, max_norm=1.0):
+        self.max_norm = max_norm
+    
+    def clip_gradient(self, gradient):
+        """Clip gradient by norm"""
+        grad_norm = np.linalg.norm(gradient)
+        if grad_norm > self.max_norm:
+            return gradient * self.max_norm / grad_norm
+        return gradient
+``` 

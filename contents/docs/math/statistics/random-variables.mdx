@@ -1,0 +1,252 @@
+---
+title: "Random Variables"
+description: "Understanding random variables, their properties, and applications in probability theory and machine learning."
+---
+
+Random variables are fundamental mathematical objects that map outcomes of random phenomena to numerical values, forming the basis for statistical modeling and machine learning.
+
+## Fundamentals
+
+### Basic Concepts
+- Random variable: $X: \Omega \to \mathbb{R}$
+- Probability space: $(\Omega, \mathcal{F}, P)$
+- Sample space mapping: $X(\omega) = x$
+- Measurability: $X^{-1}(B) \in \mathcal{F}$ for Borel sets $B$
+
+```python
+import numpy as np
+from scipy import stats
+
+# Example: Simulating random variables
+def simulate_random_variable(distribution, params, size=1000):
+    if distribution == "normal":
+        return np.random.normal(*params, size)
+    elif distribution == "uniform":
+        return np.random.uniform(*params, size)
+    elif distribution == "exponential":
+        return np.random.exponential(params[0], size)
+```
+
+### Types of Random Variables
+
+1. **Discrete Random Variables**
+   ```python
+   class DiscreteRandomVariable:
+       def __init__(self, values, probabilities):
+           self.values = np.array(values)
+           self.probabilities = np.array(probabilities)
+           assert np.isclose(np.sum(probabilities), 1.0)
+       
+       def sample(self, size=1):
+           return np.random.choice(self.values, size=size, p=self.probabilities)
+       
+       def pmf(self, x):
+           idx = np.where(self.values == x)[0]
+           return self.probabilities[idx][0] if len(idx) > 0 else 0
+   ```
+
+2. **Continuous Random Variables**
+   ```python
+   class ContinuousRandomVariable:
+       def __init__(self, pdf, bounds):
+           self.pdf = pdf
+           self.bounds = bounds
+       
+       def sample(self, size=1):
+           # Using inverse transform sampling
+           u = np.random.uniform(0, 1, size)
+           return self._inverse_cdf(u)
+       
+       def _inverse_cdf(self, u):
+           # Numerical approximation of inverse CDF
+           from scipy.optimize import root_scalar
+           def objective(x, u):
+               return stats.quad(self.pdf, self.bounds[0], x)[0] - u
+           return np.array([root_scalar(objective, args=(ui,), 
+                          bracket=self.bounds).root for ui in u])
+   ```
+
+## Properties of Random Variables
+
+### Expectation and Moments
+```python
+class RandomVariableProperties:
+    @staticmethod
+    def expectation(X, p=None):
+        """Compute E[X]"""
+        if p is None:  # Continuous case
+            return np.mean(X)
+        return np.sum(X * p)  # Discrete case
+    
+    @staticmethod
+    def variance(X, p=None):
+        """Compute Var(X)"""
+        if p is None:
+            return np.var(X)
+        mu = RandomVariableProperties.expectation(X, p)
+        return np.sum(p * (X - mu)**2)
+    
+    @staticmethod
+    def moment(X, k, p=None):
+        """Compute k-th moment E[X^k]"""
+        if p is None:
+            return np.mean(X**k)
+        return np.sum(p * X**k)
+    
+    @staticmethod
+    def standardize(X):
+        """Convert to standard form (μ=0, σ=1)"""
+        return (X - np.mean(X)) / np.std(X)
+```
+
+### Dependencies
+1. **Correlation Analysis**
+   ```python
+   def analyze_dependencies(X, Y):
+       # Pearson correlation
+       correlation = np.corrcoef(X, Y)[0,1]
+       
+       # Covariance
+       covariance = np.cov(X, Y)[0,1]
+       
+       # Rank correlation (Spearman)
+       rank_corr = stats.spearmanr(X, Y).correlation
+       
+       return {
+           'correlation': correlation,
+           'covariance': covariance,
+           'rank_correlation': rank_corr
+       }
+   ```
+
+2. **Independence Testing**
+   ```python
+   def test_independence(X, Y, alpha=0.05):
+       # Chi-square test for discrete variables
+       chi2, p_value = stats.chi2_contingency(
+           np.histogram2d(X, Y)[0]
+       )[:2]
+       
+       # Mutual information
+       mutual_info = stats.mutual_info_score(
+           np.digitize(X, np.linspace(min(X), max(X), 10)),
+           np.digitize(Y, np.linspace(min(Y), max(Y), 10))
+       )
+       
+       return {
+           'chi2_statistic': chi2,
+           'p_value': p_value,
+           'mutual_information': mutual_info,
+           'independent': p_value > alpha
+       }
+   ```
+
+## Transformations
+
+### Linear Transformations
+```python
+def linear_transform(X, a=1, b=0):
+    """Y = aX + b"""
+    Y = a * X + b
+    return {
+        'transformed': Y,
+        'mean': a * np.mean(X) + b,
+        'variance': a**2 * np.var(X)
+    }
+```
+
+### Nonlinear Transformations
+```python
+class NonlinearTransforms:
+    @staticmethod
+    def exponential(X):
+        """Y = exp(X)"""
+        return np.exp(X)
+    
+    @staticmethod
+    def logarithmic(X):
+        """Y = log(X)"""
+        return np.log(X)
+    
+    @staticmethod
+    def power(X, n):
+        """Y = X^n"""
+        return X**n
+```
+
+## Applications in Machine Learning
+
+### Model Parameters
+```python
+def initialize_weights(shape, method='normal'):
+    if method == 'normal':
+        return np.random.normal(0, 0.01, shape)
+    elif method == 'xavier':
+        limit = np.sqrt(6 / sum(shape))
+        return np.random.uniform(-limit, limit, shape)
+    elif method == 'he':
+        return np.random.normal(0, np.sqrt(2/shape[0]), shape)
+```
+
+### Probabilistic Models
+```python
+class GaussianMixtureModel:
+    def __init__(self, n_components):
+        self.n_components = n_components
+        
+    def fit(self, X, n_iter=100):
+        # Initialize parameters
+        self.weights = np.ones(self.n_components) / self.n_components
+        self.means = np.random.choice(X, self.n_components)
+        self.vars = np.ones(self.n_components)
+        
+        for _ in range(n_iter):
+            # E-step: Compute responsibilities
+            resp = self._compute_responsibilities(X)
+            
+            # M-step: Update parameters
+            self._update_parameters(X, resp)
+    
+    def _compute_responsibilities(self, X):
+        return np.array([w * stats.norm(mu, np.sqrt(var)).pdf(X)
+                        for w, mu, var in 
+                        zip(self.weights, self.means, self.vars)])
+```
+
+## Advanced Topics
+
+### Stochastic Processes
+```python
+def generate_random_walk(n_steps, p=0.5):
+    """Generate a simple random walk"""
+    steps = np.random.choice([-1, 1], size=n_steps, p=[1-p, p])
+    position = np.cumsum(steps)
+    return position
+
+def generate_brownian_motion(n_points, T=1.0):
+    """Generate Brownian motion"""
+    dt = T/n_points
+    dW = np.random.normal(0, np.sqrt(dt), n_points)
+    W = np.cumsum(dW)
+    return W
+```
+
+### Limit Theorems
+```python
+def demonstrate_clt(distribution, n_samples, n_means=1000):
+    """Demonstrate Central Limit Theorem"""
+    sample_means = np.array([
+        np.mean(distribution(n_samples))
+        for _ in range(n_means)
+    ])
+    
+    # Test for normality
+    _, p_value = stats.normaltest(sample_means)
+    
+    return {
+        'sample_means': sample_means,
+        'mean': np.mean(sample_means),
+        'std': np.std(sample_means),
+        'is_normal': p_value > 0.05
+    }
+``` 

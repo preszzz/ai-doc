@@ -1,0 +1,509 @@
+---
+title: "Manifold Learning"
+description: "Understanding manifold learning techniques for nonlinear dimensionality reduction."
+---
+
+Manifold learning methods discover the underlying low-dimensional structure in high-dimensional data by preserving local relationships. These techniques are based on the manifold hypothesis, which states that real-world high-dimensional data often lies on or near a lower-dimensional manifold.
+
+## Key Concepts
+
+### The Manifold Hypothesis
+The manifold hypothesis suggests that high-dimensional data in real-world applications often has an intrinsic structure that can be represented in a lower-dimensional space. For example, images of faces might vary along only a few dimensions (pose, expression, lighting) despite being represented in a high-dimensional pixel space.
+
+### Local vs Global Structure
+Manifold learning methods typically focus on preserving either:
+- **Local structure**: Maintaining relationships between nearby points (e.g., LLE, t-SNE)
+- **Global structure**: Preserving distances between all pairs of points (e.g., Isomap)
+
+### Nonlinear vs Linear Methods
+Unlike linear methods like PCA, manifold learning techniques can capture nonlinear relationships in the data, making them more suitable for complex real-world datasets.
+
+## t-SNE (t-Distributed Stochastic Neighbor Embedding)
+
+t-SNE is a nonlinear dimensionality reduction technique particularly well-suited for visualizing high-dimensional data. It emphasizes the preservation of local structure while also maintaining some global structure.
+
+### Key Features
+1. **Probability-based**: Converts high-dimensional Euclidean distances into conditional probabilities
+2. **Student t-distribution**: Uses t-distribution in low-dimensional space to avoid crowding
+3. **Cost function**: Minimizes KL divergence between high and low-dimensional probability distributions
+
+### Mathematical Foundation
+The probability of point j being selected as a neighbor of point i is:
+
+$p_{j|i} = \frac{\exp(-||x_i - x_j||^2 / 2\sigma_i^2)}{\sum_{k \neq i} \exp(-||x_i - x_k||^2 / 2\sigma_i^2)}$
+
+In the low-dimensional space, similarities are computed using a Student t-distribution:
+
+$q_{ij} = \frac{(1 + ||y_i - y_j||^2)^{-1}}{\sum_{k \neq l} (1 + ||y_k - y_l||^2)^{-1}}$
+
+### t-SNE Implementation
+```python
+class TSNE:
+    def __init__(self, n_components=2, perplexity=30.0, 
+                 learning_rate=200.0, n_iter=1000):
+        self.n_components = n_components
+        self.perplexity = perplexity
+        self.learning_rate = learning_rate
+        self.n_iter = n_iter
+    
+    def fit_transform(self, X):
+        """Fit t-SNE and return embedded points"""
+        n_samples = X.shape[0]
+        
+        # Compute pairwise distances
+        distances = self._compute_pairwise_distances(X)
+        
+        # Compute joint probabilities
+        P = self._compute_joint_probabilities(distances)
+        
+        # Initialize embedding
+        Y = np.random.normal(0, 1e-4, (n_samples, self.n_components))
+        
+        # Optimize embedding
+        for iter in range(self.n_iter):
+            # Compute Q-distribution
+            Q, num = self._compute_q_distribution(Y)
+            
+            # Compute gradients
+            grads = self._compute_gradients(P, Q, Y, num)
+            
+            # Update embedding
+            Y = Y - self.learning_rate * grads
+            
+            # Zero-center embedding
+            Y = Y - np.mean(Y, axis=0)
+            
+            # Early exaggeration
+            if iter == 100:
+                P = P / 4
+        
+        return Y
+    
+    def _compute_pairwise_distances(self, X):
+        """Compute Euclidean distances between points"""
+        sum_X = np.sum(X**2, axis=1)
+        D = sum_X[:, np.newaxis] + sum_X - 2 * np.dot(X, X.T)
+        return np.maximum(0, D)
+    
+    def _compute_joint_probabilities(self, D):
+        """Compute joint probabilities P_ij"""
+        P = np.zeros_like(D)
+        
+        for i in range(D.shape[0]):
+            P[i] = self._compute_row_probabilities(D[i], self.perplexity)
+        
+        # Symmetrize and normalize
+        P = (P + P.T) / (2 * D.shape[0])
+        P = np.maximum(P, 1e-12)
+        
+        return P
+    
+    def _compute_row_probabilities(self, distances, perplexity):
+        """Compute row probabilities using binary search"""
+        beta = 1.0
+        beta_min = -np.inf
+        beta_max = np.inf
+        
+        for _ in range(50):
+            # Compute probabilities
+            P = np.exp(-distances * beta)
+            P[P == np.inf] = np.finfo(P.dtype).max
+            P[range(len(P))] = 0
+            sum_P = np.sum(P)
+            
+            if sum_P == 0:
+                P = np.zeros_like(P)
+            else:
+                P = P / sum_P
+            
+            # Compute entropy
+            H = -np.sum(P[P > 0] * np.log2(P[P > 0]))
+            
+            # Update beta using binary search
+            H_diff = H - np.log2(perplexity)
+            
+            if np.abs(H_diff) < 1e-5:
+                break
+            
+            if H_diff > 0:
+                beta_min = beta
+                beta = beta * 2 if beta_max == np.inf else (beta + beta_max) / 2
+            else:
+                beta_max = beta
+                beta = beta / 2 if beta_min == -np.inf else (beta + beta_min) / 2
+        
+        return P
+    
+    def _compute_q_distribution(self, Y):
+        """Compute Student t-distribution in embedding space"""
+        distances = self._compute_pairwise_distances(Y)
+        num = 1 / (1 + distances)
+        np.fill_diagonal(num, 0)
+        Q = num / np.sum(num)
+        return np.maximum(Q, 1e-12), num
+    
+    def _compute_gradients(self, P, Q, Y, num):
+        """Compute t-SNE gradients"""
+        PQ_diff = P - Q
+        grads = np.zeros_like(Y)
+        
+        for i in range(Y.shape[0]):
+            grad = 4 * np.sum(
+                np.multiply(PQ_diff[:, i:i+1] * num[:, i:i+1],
+                          Y[i:i+1] - Y),
+                axis=0
+            )
+            grads[i] = grad
+        
+        return grads
+```
+
+## UMAP (Uniform Manifold Approximation and Projection)
+
+UMAP is a dimensionality reduction technique based on Riemannian geometry and algebraic topology. It often provides better global structure preservation than t-SNE while maintaining similar local structure preservation.
+
+### Key Features
+1. **Theoretical foundation**: Based on manifold theory and topological data analysis
+2. **Fuzzy topology**: Uses fuzzy simplicial sets to represent the manifold
+3. **Performance**: Generally faster than t-SNE, especially for large datasets
+
+### Mathematical Foundation
+UMAP constructs a weighted graph using the following similarity metric:
+
+$d(x_i, x_j) = -\log_2(\frac{\min(\exp(-\frac{||x_i - x_j||_2}{\sigma_i}), \exp(-\frac{||x_i - x_j||_2}{\sigma_j}))}{\sum_{k \neq i} \exp(-\frac{||x_i - x_k||_2}{\sigma_i})})$
+
+The low-dimensional representation is optimized to minimize the cross-entropy between the high and low-dimensional fuzzy simplicial sets.
+
+### UMAP Implementation
+```python
+class UMAP:
+    def __init__(self, n_components=2, n_neighbors=15, min_dist=0.1,
+                 learning_rate=1.0, n_epochs=200):
+        self.n_components = n_components
+        self.n_neighbors = n_neighbors
+        self.min_dist = min_dist
+        self.learning_rate = learning_rate
+        self.n_epochs = n_epochs
+    
+    def fit_transform(self, X):
+        """Fit UMAP and return embedded points"""
+        # Compute nearest neighbors
+        knn_indices, knn_dists = self._compute_neighbors(X)
+        
+        # Compute fuzzy simplicial set
+        graph = self._compute_fuzzy_simplicial_set(knn_indices, knn_dists)
+        
+        # Initialize embedding
+        embedding = self._initialize_embedding(graph)
+        
+        # Optimize embedding
+        embedding = self._optimize_embedding(embedding, graph)
+        
+        return embedding
+    
+    def _compute_neighbors(self, X):
+        """Compute k-nearest neighbors"""
+        from sklearn.neighbors import NearestNeighbors
+        
+        # Find nearest neighbors
+        knn = NearestNeighbors(n_neighbors=self.n_neighbors)
+        knn.fit(X)
+        knn_dists, knn_indices = knn.kneighbors(X)
+        
+        return knn_indices, knn_dists
+    
+    def _compute_fuzzy_simplicial_set(self, knn_indices, knn_dists):
+        """Compute fuzzy simplicial set (graph)"""
+        n_samples = knn_indices.shape[0]
+        rows = np.zeros(knn_indices.size, dtype=np.int32)
+        cols = np.zeros(knn_indices.size, dtype=np.int32)
+        vals = np.zeros(knn_indices.size, dtype=np.float32)
+        
+        for i in range(n_samples):
+            for j in range(self.n_neighbors):
+                if knn_indices[i, j] == -1:
+                    continue
+                    
+                # Compute membership strength
+                d = knn_dists[i, j]
+                rows[i * self.n_neighbors + j] = i
+                cols[i * self.n_neighbors + j] = knn_indices[i, j]
+                vals[i * self.n_neighbors + j] = np.exp(-d)
+        
+        # Symmetrize and normalize
+        from scipy.sparse import csr_matrix
+        graph = csr_matrix((vals, (rows, cols)), 
+                         shape=(n_samples, n_samples))
+        graph = graph + graph.T
+        graph.data = graph.data / graph.sum(axis=1).A1[graph.indices]
+        
+        return graph
+    
+    def _initialize_embedding(self, graph):
+        """Initialize low-dimensional embedding"""
+        # Use spectral embedding for initialization
+        from scipy.sparse.linalg import eigsh
+        
+        n_samples = graph.shape[0]
+        
+        # Compute normalized graph Laplacian
+        diag = np.array(graph.sum(axis=1)).flatten()
+        D = np.diag(diag)
+        L = D - graph
+        
+        # Compute eigenvectors
+        eigenvals, eigenvecs = eigsh(L, k=self.n_components+1, 
+                                   which='SM')
+        
+        return eigenvecs[:, 1:] * np.sqrt(n_samples)
+    
+    def _optimize_embedding(self, embedding, graph):
+        """Optimize embedding using SGD"""
+        n_samples = graph.shape[0]
+        
+        # Convert graph to COO format for efficient sampling
+        graph = graph.tocoo()
+        
+        for epoch in range(self.n_epochs):
+            # Sample edges
+            edges = np.random.choice(len(graph.data), 
+                                   size=n_samples * 5, 
+                                   p=graph.data/graph.data.sum())
+            
+            for edge in edges:
+                i = graph.row[edge]
+                j = graph.col[edge]
+                
+                # Compute gradient
+                dist = np.sum((embedding[i] - embedding[j])**2)
+                grad_coef = 2 * (1 / (1 + dist) - 
+                                (1 - self.min_dist) / 
+                                (self.min_dist + dist))
+                grad = grad_coef * (embedding[i] - embedding[j])
+                
+                # Update points
+                embedding[i] = embedding[i] - \
+                             self.learning_rate * grad
+                embedding[j] = embedding[j] + \
+                             self.learning_rate * grad
+        
+        return embedding
+```
+
+## Locally Linear Embedding (LLE)
+
+LLE attempts to preserve the local geometry of the data by representing each point as a linear combination of its neighbors.
+
+### Key Features
+1. **Local geometry**: Preserves neighborhood relationships
+2. **Sparse optimization**: Involves solving sparse eigenvalue problems
+3. **Reconstruction weights**: Based on linear reconstruction of each point from its neighbors
+
+### Mathematical Foundation
+LLE minimizes the reconstruction error:
+
+$\epsilon(W) = \sum_i |x_i - \sum_j W_{ij}x_j|^2$
+
+subject to $\sum_j W_{ij} = 1$ and $W_{ij} = 0$ if $x_j$ is not a neighbor of $x_i$.
+
+### LLE Implementation
+```python
+class LocallyLinearEmbedding:
+    def __init__(self, n_components=2, n_neighbors=5, reg=1e-3):
+        self.n_components = n_components
+        self.n_neighbors = n_neighbors
+        self.reg = reg
+    
+    def fit_transform(self, X):
+        """Fit LLE and return embedded points"""
+        # Find nearest neighbors
+        knn_indices = self._find_neighbors(X)
+        
+        # Compute reconstruction weights
+        W = self._compute_weights(X, knn_indices)
+        
+        # Compute embedding
+        Y = self._compute_embedding(W)
+        
+        return Y
+    
+    def _find_neighbors(self, X):
+        """Find k-nearest neighbors"""
+        from sklearn.neighbors import NearestNeighbors
+        
+        nbrs = NearestNeighbors(n_neighbors=self.n_neighbors+1)
+        nbrs.fit(X)
+        distances, indices = nbrs.kneighbors(X)
+        
+        return indices[:, 1:]
+    
+    def _compute_weights(self, X, indices):
+        """Compute reconstruction weights"""
+        n_samples = X.shape[0]
+        W = np.zeros((n_samples, n_samples))
+        
+        for i in range(n_samples):
+            # Get local coordinates
+            neighbors = indices[i]
+            Xi = X[neighbors] - X[i]
+            
+            # Compute local covariance
+            C = np.dot(Xi, Xi.T)
+            
+            # Add regularization
+            trace = np.trace(C)
+            if trace > 0:
+                C += self.reg * trace * np.eye(self.n_neighbors)
+            else:
+                C += self.reg * np.eye(self.n_neighbors)
+            
+            # Solve for weights
+            w = np.linalg.solve(C, np.ones(self.n_neighbors))
+            w = w / np.sum(w)
+            
+            # Store weights
+            W[i, neighbors] = w
+        
+        return W
+    
+    def _compute_embedding(self, W):
+        """Compute embedding using eigenvectors"""
+        # Compute sparse matrix M = (I-W)^T (I-W)
+        I = np.eye(W.shape[0])
+        M = np.dot((I - W).T, I - W)
+        
+        # Compute bottom eigenvectors
+        eigenvals, eigenvecs = np.linalg.eigh(M)
+        
+        # Select embedding vectors
+        indices = np.argsort(eigenvals)[1:self.n_components+1]
+        return eigenvecs[:, indices]
+```
+
+## Isomap
+
+Isomap extends classical MDS by replacing Euclidean distances with geodesic distances computed along the manifold.
+
+### Key Features
+1. **Geodesic distances**: Approximates true manifold distances
+2. **Global structure**: Preserves global geometry of the manifold
+3. **Graph-based**: Uses shortest paths in neighborhood graph
+
+### Mathematical Foundation
+The geodesic distance between points is approximated by:
+
+$d_G(x_i, x_j) = \min_{p \in P_{ij}} \sum_{k=1}^{|p|-1} d(x_{p_k}, x_{p_{k+1}})$
+
+where $P_{ij}$ is the set of all paths between $x_i$ and $x_j$ in the neighborhood graph.
+
+### Isomap Implementation
+```python
+class Isomap:
+    def __init__(self, n_components=2, n_neighbors=5):
+        self.n_components = n_components
+        self.n_neighbors = n_neighbors
+    
+    def fit_transform(self, X):
+        """Fit Isomap and return embedded points"""
+        # Compute geodesic distances
+        D = self._compute_geodesic_distances(X)
+        
+        # Apply classical MDS
+        Y = self._apply_mds(D)
+        
+        return Y
+    
+    def _compute_geodesic_distances(self, X):
+        """Compute geodesic distances using shortest paths"""
+        from scipy.sparse.csgraph import shortest_path
+        from sklearn.neighbors import kneighbors_graph
+        
+        # Construct k-nearest neighbors graph
+        connectivity = kneighbors_graph(
+            X, n_neighbors=self.n_neighbors, mode='distance')
+        
+        # Compute shortest paths
+        distances = shortest_path(connectivity, directed=False)
+        
+        return distances
+    
+    def _apply_mds(self, D):
+        """Apply classical MDS"""
+        n_samples = D.shape[0]
+        
+        # Square distances
+        D_squared = D ** 2
+        
+        # Center distance matrix
+        J = np.eye(n_samples) - np.ones((n_samples, n_samples)) / n_samples
+        B = -0.5 * np.dot(np.dot(J, D_squared), J)
+        
+        # Compute eigendecomposition
+        eigenvals, eigenvecs = np.linalg.eigh(B)
+        
+        # Sort eigenvalues in descending order
+        idx = np.argsort(eigenvals)[::-1]
+        eigenvals = eigenvals[idx]
+        eigenvecs = eigenvecs[:, idx]
+        
+        # Select top components
+        return eigenvecs[:, :self.n_components] * \
+               np.sqrt(np.maximum(eigenvals[:self.n_components], 0))
+```
+
+## Applications in AI and Machine Learning
+
+### 1. Data Visualization
+- Visualizing high-dimensional datasets
+- Understanding cluster structure
+- Identifying patterns and outliers
+
+### 2. Feature Learning
+- Preprocessing for machine learning models
+- Reducing computational complexity
+- Improving model performance
+
+### 3. Transfer Learning
+- Finding common low-dimensional representations
+- Mapping between different domains
+- Aligning feature spaces
+
+## Best Practices
+
+### 1. Method Selection
+- Use t-SNE for visualization tasks
+- Choose UMAP for balance of global and local structure
+- Select Isomap when geodesic distances are important
+- Use LLE for locally linear data
+
+### 2. Parameter Tuning
+- Adjust perplexity in t-SNE (typical range: 5-50)
+- Set n_neighbors in UMAP (balance between local and global structure)
+- Choose appropriate number of components
+- Consider regularization parameters
+
+### 3. Preprocessing
+- Scale features appropriately
+- Remove outliers if necessary
+- Consider dimensionality reduction as preprocessing
+- Handle missing values
+
+## Common Challenges and Solutions
+
+### 1. Computational Complexity
+- Use approximate nearest neighbors
+- Implement batch processing
+- Leverage GPU acceleration
+- Consider sampling for large datasets
+
+### 2. Quality Assessment
+- Compare with ground truth when available
+- Use multiple metrics (trustworthiness, continuity)
+- Visualize results at different scales
+- Cross-validate with different parameters
+
+### 3. Stability
+- Run multiple times with different initializations
+- Ensemble results when possible
+- Monitor convergence
+- Use appropriate learning rates 

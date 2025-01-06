@@ -1,0 +1,179 @@
+---
+title: "Eigenvalues and Eigenvectors"
+description: "Understanding eigenvalues, eigenvectors, and their crucial role in machine learning and data analysis."
+---
+
+Eigenvalues and eigenvectors are fundamental concepts in linear algebra that play a crucial role in various machine learning applications, from dimensionality reduction to principal component analysis.
+
+## Fundamental Concepts
+
+### Definition
+- Eigenvalue equation: $A\mathbf{v} = \lambda\mathbf{v}$
+  * $A$ is a square matrix
+  * $\mathbf{v}$ is an eigenvector (non-zero)
+  * $\lambda$ is an eigenvalue
+- Characteristic equation: $\det(A - \lambda I) = 0$
+- Geometric interpretation: Eigenvectors represent directions that are only scaled by transformation
+- Example:
+  ```python
+  import numpy as np
+  
+  # Create a 2x2 matrix
+  A = np.array([[4, -1], 
+                [2, 1]])
+  
+  # Find eigenvalues and eigenvectors
+  eigenvals, eigenvecs = np.linalg.eig(A)
+  ```
+
+### Properties
+- Existence: $n \times n$ matrix has at most $n$ distinct eigenvalues
+- Algebraic multiplicity: Power of $(\lambda - \lambda_i)$ in characteristic polynomial
+- Geometric multiplicity: Dimension of eigenspace $\text{null}(A - \lambda I)$
+- Diagonalization: $A = PDP^{-1}$ where $D$ is diagonal matrix of eigenvalues
+  ```python
+  # Diagonalization example
+  def diagonalize(A):
+      eigenvals, P = np.linalg.eig(A)
+      D = np.diag(eigenvals)
+      P_inv = np.linalg.inv(P)
+      return P, D, P_inv
+  ```
+
+## Computation Methods
+
+### Finding Eigenvalues
+1. **Characteristic Polynomial**
+   - $p(\lambda) = \det(A - \lambda I)$
+   - For 2×2 matrix: $\lambda^2 - \text{tr}(A)\lambda + \det(A) = 0$
+
+2. **Power Iteration**
+   ```python
+   def power_iteration(A, num_iterations):
+       n = A.shape[0]
+       v = np.random.rand(n)
+       for _ in range(num_iterations):
+           v_new = np.dot(A, v)
+           v = v_new / np.linalg.norm(v_new)
+       eigenvalue = np.dot(np.dot(A, v), v)
+       return eigenvalue, v
+   ```
+
+3. **QR Algorithm**
+   ```python
+   def qr_iteration(A, num_iterations):
+       for _ in range(num_iterations):
+           Q, R = np.linalg.qr(A)
+           A = np.dot(R, Q)
+       return np.diag(A)  # Eigenvalues
+   ```
+
+### Finding Eigenvectors
+- Substitution method
+- Null space computation
+- Iterative methods
+- Computational considerations
+
+## Applications in Machine Learning
+
+### Principal Component Analysis (PCA)
+```python
+def pca_implementation(X, n_components):
+    # Center the data
+    X_centered = X - np.mean(X, axis=0)
+    
+    # Compute covariance matrix
+    cov_matrix = np.cov(X_centered.T)
+    
+    # Get eigenvalues and eigenvectors
+    eigenvals, eigenvecs = np.linalg.eigh(cov_matrix)
+    
+    # Sort by eigenvalues in descending order
+    idx = eigenvals.argsort()[::-1]
+    eigenvals = eigenvals[idx]
+    eigenvecs = eigenvecs[:, idx]
+    
+    # Project data
+    return np.dot(X_centered, eigenvecs[:, :n_components])
+```
+
+### Spectral Clustering
+```python
+def spectral_clustering(similarity_matrix, n_clusters):
+    # Compute Laplacian matrix
+    D = np.diag(np.sum(similarity_matrix, axis=1))
+    L = D - similarity_matrix
+    
+    # Get eigenvalues and eigenvectors
+    eigenvals, eigenvecs = np.linalg.eigh(L)
+    
+    # Use k smallest non-zero eigenvalues
+    features = eigenvecs[:, :n_clusters]
+    
+    # Apply k-means
+    from sklearn.cluster import KMeans
+    kmeans = KMeans(n_clusters=n_clusters)
+    return kmeans.fit_predict(features)
+```
+
+### Spectral Methods
+- Spectral clustering
+- Graph Laplacian
+- Manifold learning
+- Network analysis
+
+### Other Applications
+- Google's PageRank algorithm
+- Image processing
+- Quantum mechanics
+- Vibration analysis
+
+## Practical Considerations
+
+### Numerical Stability
+- Condition number: $\kappa(A) = \|A\| \|A^{-1}\|$
+- Sensitivity to perturbations: $\|\Delta \lambda\| \leq \kappa(V)\|\Delta A\|$
+- Implementation best practices:
+  ```python
+  # Use more stable algorithms for symmetric matrices
+  eigenvals = np.linalg.eigvalsh(A)  # for symmetric/Hermitian
+  eigenvals = np.linalg.eigvals(A)   # for general matrices
+  ```
+
+### Software Tools
+```python
+# SciPy sparse eigenvalue computation
+from scipy.sparse.linalg import eigs
+eigenvals, eigenvecs = eigs(A, k=3)  # Get 3 largest eigenvalues
+
+# Randomized SVD for large matrices
+from sklearn.utils.extmath import randomized_svd
+U, S, Vt = randomized_svd(A, n_components=k)
+```
+
+## Advanced Topics
+
+### Generalized Eigenvalue Problems
+- Equation: $Ax = \lambda Bx$
+- Applications in discriminant analysis
+```python
+# Solve generalized eigenvalue problem
+eigenvals, eigenvecs = np.linalg.eigh(A, B)
+```
+
+### Complex Eigenvalues
+- Conjugate pairs in real matrices
+- Handling complex numbers:
+  ```python
+  # Check if eigenvalues are real
+  is_real = np.allclose(eigenvals.imag, 0)
+  
+  # Get real and imaginary parts
+  real_part = eigenvals.real
+  imag_part = eigenvals.imag
+  ```
+
+### Jordan Canonical Form
+- When matrix is not diagonalizable
+- Structure: $J = \begin{bmatrix} J_1 & & \\ & \ddots & \\ & & J_k \end{bmatrix}$
+- Jordan blocks: $J_i = \begin{bmatrix} \lambda_i & 1 & & \\ & \lambda_i & \ddots & \\ & & \ddots & 1 \\ & & & \lambda_i \end{bmatrix}$ 

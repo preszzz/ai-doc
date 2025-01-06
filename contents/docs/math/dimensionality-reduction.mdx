@@ -1,0 +1,413 @@
+---
+title: "Dimensionality Reduction"
+description: "Understanding dimensionality reduction techniques and their applications in machine learning."
+---
+
+Dimensionality reduction is a crucial technique in machine learning for reducing the complexity of data while preserving important patterns and relationships.
+
+## Principal Component Analysis (PCA)
+
+### Basic PCA
+```python
+class PCA:
+    def __init__(self, n_components=None):
+        self.n_components = n_components
+        self.components_ = None
+        self.mean_ = None
+        self.explained_variance_ = None
+    
+    def fit(self, X):
+        """Fit PCA model"""
+        # Center the data
+        self.mean_ = np.mean(X, axis=0)
+        X_centered = X - self.mean_
+        
+        # Compute covariance matrix
+        cov_matrix = np.cov(X_centered, rowvar=False)
+        
+        # Compute eigenvalues and eigenvectors
+        eigenvals, eigenvecs = np.linalg.eigh(cov_matrix)
+        
+        # Sort eigenvalues and eigenvectors in descending order
+        idx = np.argsort(eigenvals)[::-1]
+        eigenvals = eigenvals[idx]
+        eigenvecs = eigenvecs[:, idx]
+        
+        # Select components
+        if self.n_components is None:
+            self.n_components = X.shape[1]
+        
+        self.components_ = eigenvecs[:, :self.n_components]
+        self.explained_variance_ = eigenvals[:self.n_components]
+        
+        return self
+    
+    def transform(self, X):
+        """Transform data using PCA"""
+        X_centered = X - self.mean_
+        return X_centered @ self.components_
+    
+    def inverse_transform(self, X_transformed):
+        """Inverse transform to original space"""
+        return X_transformed @ self.components_.T + self.mean_
+```
+
+### Kernel PCA
+```python
+class KernelPCA:
+    def __init__(self, n_components=None, kernel='rbf', gamma=1.0):
+        self.n_components = n_components
+        self.kernel = kernel
+        self.gamma = gamma
+        self.alphas = None
+        self.X_fit = None
+    
+    def _kernel_function(self, X1, X2):
+        """Compute kernel matrix"""
+        if self.kernel == 'rbf':
+            # Radial basis function kernel
+            distances = np.sum(X1**2, axis=1)[:, np.newaxis] + \
+                       np.sum(X2**2, axis=1) - \
+                       2 * np.dot(X1, X2.T)
+            return np.exp(-self.gamma * distances)
+        elif self.kernel == 'linear':
+            return np.dot(X1, X2.T)
+        else:
+            raise ValueError("Unsupported kernel")
+    
+    def fit(self, X):
+        """Fit Kernel PCA"""
+        self.X_fit = X
+        n_samples = X.shape[0]
+        
+        # Compute kernel matrix
+        K = self._kernel_function(X, X)
+        
+        # Center kernel matrix
+        one_n = np.ones((n_samples, n_samples)) / n_samples
+        K_centered = K - one_n @ K - K @ one_n + one_n @ K @ one_n
+        
+        # Compute eigenvalues and eigenvectors
+        eigenvals, eigenvecs = np.linalg.eigh(K_centered)
+        
+        # Sort eigenvalues and eigenvectors in descending order
+        idx = np.argsort(eigenvals)[::-1]
+        eigenvals = eigenvals[idx]
+        eigenvecs = eigenvecs[:, idx]
+        
+        # Select components
+        if self.n_components is None:
+            self.n_components = X.shape[1]
+        
+        # Normalize eigenvectors
+        self.alphas = eigenvecs[:, :self.n_components] / \
+                     np.sqrt(eigenvals[:self.n_components])
+        
+        return self
+    
+    def transform(self, X):
+        """Transform data using Kernel PCA"""
+        K = self._kernel_function(X, self.X_fit)
+        return K @ self.alphas
+```
+
+## t-SNE (t-Distributed Stochastic Neighbor Embedding)
+
+```python
+class TSNE:
+    def __init__(self, n_components=2, perplexity=30.0, 
+                 learning_rate=200.0, n_iter=1000):
+        self.n_components = n_components
+        self.perplexity = perplexity
+        self.learning_rate = learning_rate
+        self.n_iter = n_iter
+    
+    def _compute_pairwise_distances(self, X):
+        """Compute pairwise Euclidean distances"""
+        sum_X = np.sum(X**2, axis=1)
+        D = sum_X[:, np.newaxis] + sum_X - 2 * np.dot(X, X.T)
+        return np.maximum(0, D)
+    
+    def _compute_joint_probabilities(self, D):
+        """Compute joint probabilities p_ij"""
+        n_samples = D.shape[0]
+        P = np.zeros((n_samples, n_samples))
+        
+        # Find optimal sigma for each point
+        target = np.log(self.perplexity)
+        for i in range(n_samples):
+            Di = D[i, np.concatenate((np.arange(i), np.arange(i+1, n_samples)))]
+            sigma = self._binary_search_sigma(Di, target)
+            
+            # Compute probabilities
+            exp_Di = np.exp(-Di / (2 * sigma**2))
+            P[i, np.concatenate((np.arange(i), np.arange(i+1, n_samples)))] = exp_Di
+        
+        # Symmetrize and normalize
+        P = P + P.T
+        P = P / np.sum(P)
+        P = np.maximum(P, 1e-12)
+        
+        return P
+    
+    def _binary_search_sigma(self, distances, target, max_iter=50):
+        """Binary search for sigma that gives desired perplexity"""
+        sigma_min = 0.0
+        sigma_max = float('inf')
+        sigma = 1.0
+        
+        for _ in range(max_iter):
+            exp_d = np.exp(-distances / (2 * sigma**2))
+            sum_exp_d = np.sum(exp_d)
+            H = np.log(sum_exp_d) + \
+                np.sum(distances * exp_d) / (2 * sigma**2 * sum_exp_d)
+            
+            if abs(H - target) < 1e-5:
+                break
+            
+            if H > target:
+                sigma_max = sigma
+                sigma = (sigma + sigma_min) / 2
+            else:
+                sigma_min = sigma
+                sigma = (sigma + sigma_max) / 2 if sigma_max < float('inf') \
+                       else sigma * 2
+        
+        return sigma
+    
+    def fit_transform(self, X):
+        """Fit t-SNE and return embedded points"""
+        n_samples = X.shape[0]
+        
+        # Compute pairwise distances and joint probabilities
+        D = self._compute_pairwise_distances(X)
+        P = self._compute_joint_probabilities(D)
+        
+        # Initialize low-dimensional points
+        Y = np.random.normal(0, 1e-4, (n_samples, self.n_components))
+        
+        # Gradient descent
+        for iter in range(self.n_iter):
+            # Compute Q-distribution
+            sum_Y = np.sum(Y**2, axis=1)
+            num = 1 / (1 + sum_Y[:, np.newaxis] + sum_Y - 2 * np.dot(Y, Y.T))
+            np.fill_diagonal(num, 0)
+            Q = num / np.sum(num)
+            Q = np.maximum(Q, 1e-12)
+            
+            # Compute gradients
+            PQ = P - Q
+            grad = np.zeros_like(Y)
+            for i in range(n_samples):
+                grad[i] = 4 * np.sum(np.multiply(
+                    PQ[:, i:i+1] * num[:, i:i+1],
+                    Y[i:i+1] - Y), axis=0)
+            
+            # Update points
+            Y = Y - self.learning_rate * grad
+            
+            # Zero mean
+            Y = Y - np.mean(Y, axis=0)
+            
+            # Early exaggeration
+            if iter == 100:
+                P = P / 4
+        
+        return Y
+```
+
+## UMAP (Uniform Manifold Approximation and Projection)
+
+```python
+class UMAP:
+    def __init__(self, n_components=2, n_neighbors=15, min_dist=0.1, 
+                 learning_rate=1.0, n_epochs=200):
+        self.n_components = n_components
+        self.n_neighbors = n_neighbors
+        self.min_dist = min_dist
+        self.learning_rate = learning_rate
+        self.n_epochs = n_epochs
+    
+    def _fuzzy_simplicial_set(self, X):
+        """Construct fuzzy simplicial set"""
+        # Compute nearest neighbors
+        knn = NearestNeighbors(n_neighbors=self.n_neighbors)
+        knn.fit(X)
+        distances, indices = knn.kneighbors(X)
+        
+        # Compute sigma for each point
+        rho = distances[:, 0]
+        sigma = np.zeros(X.shape[0])
+        for i in range(X.shape[0]):
+            sigma[i] = self._binary_search_sigma(
+                distances[i], rho[i], self.n_neighbors)
+        
+        # Compute membership strengths
+        rows = np.repeat(np.arange(X.shape[0]), self.n_neighbors)
+        cols = indices.flatten()
+        vals = np.exp(-(distances.flatten() - rho[rows]) / sigma[rows])
+        
+        # Symmetrize and normalize
+        result = csr_matrix((vals, (rows, cols)), 
+                          shape=(X.shape[0], X.shape[0]))
+        result = result + result.T
+        result.data = result.data / np.maximum(result.sum(axis=1).A1[result.indices], 
+                                             1e-12)
+        
+        return result
+    
+    def _optimize_layout(self, graph):
+        """Optimize the low-dimensional layout"""
+        # Initialize embedding
+        embedding = np.random.normal(0, 1e-4, 
+                                   (graph.shape[0], self.n_components))
+        
+        # Prepare negative samples
+        n_samples = graph.shape[0]
+        n_edges = graph.nnz
+        epochs_per_sample = self.n_epochs * n_samples / n_edges
+        
+        # Optimize
+        for i in range(n_edges * self.n_epochs):
+            # Sample an edge
+            edge = np.random.randint(n_edges)
+            source = graph.row[edge]
+            target = graph.col[edge]
+            weight = graph.data[edge]
+            
+            # Compute gradients
+            dist = np.sum((embedding[source] - embedding[target])**2)
+            grad_coef = 2 * weight * (1 / (1 + dist) - 
+                       (1 - self.min_dist) / (self.min_dist + dist))
+            grad = grad_coef * (embedding[source] - embedding[target])
+            
+            # Update points
+            embedding[source] = embedding[source] - \
+                              self.learning_rate * grad
+            embedding[target] = embedding[target] + \
+                              self.learning_rate * grad
+        
+        return embedding
+    
+    def fit_transform(self, X):
+        """Fit UMAP and return embedded points"""
+        # Construct fuzzy simplicial set
+        graph = self._fuzzy_simplicial_set(X)
+        
+        # Optimize layout
+        embedding = self._optimize_layout(graph)
+        
+        return embedding
+```
+
+## Autoencoders
+
+```python
+class Autoencoder:
+    def __init__(self, input_dim, encoding_dim, hidden_dims=[]):
+        self.input_dim = input_dim
+        self.encoding_dim = encoding_dim
+        self.hidden_dims = hidden_dims
+        
+        self.encoder = self._build_encoder()
+        self.decoder = self._build_decoder()
+        self.model = self._build_autoencoder()
+    
+    def _build_encoder(self):
+        """Build encoder network"""
+        inputs = Input(shape=(self.input_dim,))
+        x = inputs
+        
+        # Add encoder layers
+        for dim in self.hidden_dims:
+            x = Dense(dim, activation='relu')(x)
+        
+        encoded = Dense(self.encoding_dim, activation='relu')(x)
+        
+        return Model(inputs, encoded)
+    
+    def _build_decoder(self):
+        """Build decoder network"""
+        inputs = Input(shape=(self.encoding_dim,))
+        x = inputs
+        
+        # Add decoder layers
+        for dim in reversed(self.hidden_dims):
+            x = Dense(dim, activation='relu')(x)
+        
+        decoded = Dense(self.input_dim, activation='sigmoid')(x)
+        
+        return Model(inputs, decoded)
+    
+    def _build_autoencoder(self):
+        """Combine encoder and decoder"""
+        inputs = Input(shape=(self.input_dim,))
+        encoded = self.encoder(inputs)
+        decoded = self.decoder(encoded)
+        
+        return Model(inputs, decoded)
+    
+    def fit(self, X, **kwargs):
+        """Train autoencoder"""
+        self.model.compile(optimizer='adam', loss='mse')
+        return self.model.fit(X, X, **kwargs)
+    
+    def transform(self, X):
+        """Encode data"""
+        return self.encoder.predict(X)
+    
+    def inverse_transform(self, X_encoded):
+        """Decode data"""
+        return self.decoder.predict(X_encoded)
+```
+
+## Locally Linear Embedding (LLE)
+
+```python
+class LocallyLinearEmbedding:
+    def __init__(self, n_components=2, n_neighbors=5):
+        self.n_components = n_components
+        self.n_neighbors = n_neighbors
+    
+    def fit_transform(self, X):
+        """Fit LLE and return embedded points"""
+        n_samples = X.shape[0]
+        
+        # Find nearest neighbors
+        nbrs = NearestNeighbors(n_neighbors=self.n_neighbors+1)
+        nbrs.fit(X)
+        distances, indices = nbrs.kneighbors(X)
+        
+        # Compute weights
+        weights = np.zeros((n_samples, n_samples))
+        for i in range(n_samples):
+            # Get local coordinates
+            Xi = X[indices[i, 1:]]
+            Xi = Xi - X[i]
+            
+            # Compute local covariance
+            C = Xi @ Xi.T
+            
+            # Add regularization
+            trace = np.trace(C)
+            if trace > 0:
+                R = 1e-3 * trace
+            else:
+                R = 1e-3
+            C.flat[::Xi.shape[0] + 1] += R
+            
+            # Solve for weights
+            w = np.linalg.solve(C, np.ones(self.n_neighbors))
+            w = w / np.sum(w)
+            
+            # Store weights
+            weights[i, indices[i, 1:]] = w
+        
+        # Compute embedding
+        M = (np.eye(n_samples) - weights) @ (np.eye(n_samples) - weights).T
+        eigenvals, eigenvecs = np.linalg.eigh(M)
+        
+        # Select bottom eigenvectors (excluding constant eigenvector)
+        indices = np.argsort(eigenvals)[1:self.n_components+1]
+        return eigenvecs[:, indices] * np.sqrt(n_samples)
+``` 

@@ -1,0 +1,370 @@
+---
+title: "Applications of Dimensionality Reduction"
+description: "Understanding practical applications of dimensionality reduction techniques in machine learning and data analysis."
+---
+
+Dimensionality reduction techniques find extensive applications across various domains in machine learning and data analysis. This section explores key applications and their implementations.
+
+## Data Visualization
+
+### t-SNE for High-Dimensional Data
+```python
+def visualize_high_dim_data(X, perplexity=30):
+    """Visualize high-dimensional data using t-SNE"""
+    from sklearn.manifold import TSNE
+    
+    # Apply t-SNE
+    tsne = TSNE(n_components=2, perplexity=perplexity,
+                random_state=42)
+    X_embedded = tsne.fit_transform(X)
+    
+    # Create visualization
+    plt.figure(figsize=(10, 8))
+    plt.scatter(X_embedded[:, 0], X_embedded[:, 1])
+    plt.title('t-SNE Visualization')
+    plt.xlabel('Component 1')
+    plt.ylabel('Component 2')
+    
+    return X_embedded
+```
+
+### UMAP for Large-Scale Data
+```python
+def visualize_large_scale_data(X, n_neighbors=15):
+    """Visualize large-scale data using UMAP"""
+    import umap
+    
+    # Apply UMAP
+    reducer = umap.UMAP(n_neighbors=n_neighbors,
+                       random_state=42)
+    X_embedded = reducer.fit_transform(X)
+    
+    # Create visualization
+    plt.figure(figsize=(10, 8))
+    plt.scatter(X_embedded[:, 0], X_embedded[:, 1])
+    plt.title('UMAP Visualization')
+    plt.xlabel('Component 1')
+    plt.ylabel('Component 2')
+    
+    return X_embedded
+```
+
+## Feature Extraction
+
+### PCA for Feature Extraction
+```python
+class PCAFeatureExtractor:
+    def __init__(self, n_components=None, variance_threshold=0.95):
+        self.n_components = n_components
+        self.variance_threshold = variance_threshold
+        self.pca = None
+    
+    def fit_transform(self, X):
+        """Extract features using PCA"""
+        from sklearn.decomposition import PCA
+        
+        # Determine number of components
+        if self.n_components is None:
+            # Initialize with full components
+            pca_full = PCA()
+            pca_full.fit(X)
+            
+            # Find number of components for variance threshold
+            cumsum = np.cumsum(pca_full.explained_variance_ratio_)
+            self.n_components = np.argmax(cumsum >= 
+                                        self.variance_threshold) + 1
+        
+        # Apply PCA
+        self.pca = PCA(n_components=self.n_components)
+        X_transformed = self.pca.fit_transform(X)
+        
+        return X_transformed
+    
+    def get_feature_importance(self):
+        """Get importance of original features"""
+        return np.abs(self.pca.components_).sum(axis=0)
+```
+
+### Kernel PCA for Nonlinear Features
+```python
+def extract_nonlinear_features(X, n_components=2, kernel='rbf'):
+    """Extract nonlinear features using Kernel PCA"""
+    from sklearn.decomposition import KernelPCA
+    
+    # Apply Kernel PCA
+    kpca = KernelPCA(n_components=n_components,
+                     kernel=kernel)
+    X_transformed = kpca.fit_transform(X)
+    
+    return X_transformed
+```
+
+## Dimensionality Reduction for Deep Learning
+
+### Autoencoder Implementation
+```python
+class Autoencoder:
+    def __init__(self, input_dim, encoding_dims=[64, 32]):
+        self.input_dim = input_dim
+        self.encoding_dims = encoding_dims
+        self.model = self._build_model()
+    
+    def _build_model(self):
+        """Build autoencoder architecture"""
+        import tensorflow as tf
+        
+        # Encoder
+        inputs = tf.keras.Input(shape=(self.input_dim,))
+        x = inputs
+        
+        for dim in self.encoding_dims:
+            x = tf.keras.layers.Dense(dim, activation='relu')(x)
+        
+        # Decoder
+        for dim in reversed(self.encoding_dims[:-1]):
+            x = tf.keras.layers.Dense(dim, activation='relu')(x)
+        
+        outputs = tf.keras.layers.Dense(self.input_dim)(x)
+        
+        return tf.keras.Model(inputs, outputs)
+    
+    def train(self, X, epochs=100, batch_size=32):
+        """Train autoencoder"""
+        self.model.compile(optimizer='adam', loss='mse')
+        
+        history = self.model.fit(
+            X, X,
+            epochs=epochs,
+            batch_size=batch_size,
+            validation_split=0.2
+        )
+        
+        return history
+    
+    def encode(self, X):
+        """Get encoded representation"""
+        encoder = tf.keras.Model(
+            self.model.input,
+            self.model.layers[len(self.encoding_dims)].output
+        )
+        return encoder.predict(X)
+```
+
+### Variational Autoencoder
+```python
+class VariationalAutoencoder:
+    def __init__(self, input_dim, latent_dim=2):
+        self.input_dim = input_dim
+        self.latent_dim = latent_dim
+        self.model = self._build_model()
+    
+    def _build_model(self):
+        """Build VAE architecture"""
+        import tensorflow as tf
+        
+        # Encoder
+        inputs = tf.keras.Input(shape=(self.input_dim,))
+        x = tf.keras.layers.Dense(64, activation='relu')(inputs)
+        x = tf.keras.layers.Dense(32, activation='relu')(x)
+        
+        # Latent space
+        z_mean = tf.keras.layers.Dense(self.latent_dim)(x)
+        z_log_var = tf.keras.layers.Dense(self.latent_dim)(x)
+        
+        # Sampling
+        def sampling(args):
+            z_mean, z_log_var = args
+            epsilon = tf.random.normal(shape=tf.shape(z_mean))
+            return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+        
+        z = tf.keras.layers.Lambda(sampling)([z_mean, z_log_var])
+        
+        # Decoder
+        decoder_inputs = tf.keras.Input(shape=(self.latent_dim,))
+        x = tf.keras.layers.Dense(32, activation='relu')(decoder_inputs)
+        x = tf.keras.layers.Dense(64, activation='relu')(x)
+        outputs = tf.keras.layers.Dense(self.input_dim)(x)
+        
+        # Define models
+        encoder = tf.keras.Model(inputs, [z_mean, z_log_var, z])
+        decoder = tf.keras.Model(decoder_inputs, outputs)
+        
+        # Define VAE model
+        outputs = decoder(encoder(inputs)[2])
+        vae = tf.keras.Model(inputs, outputs)
+        
+        # Add VAE loss
+        reconstruction_loss = tf.reduce_mean(
+            tf.reduce_sum(tf.keras.losses.mse(inputs, outputs), axis=1))
+        kl_loss = -0.5 * tf.reduce_mean(
+            1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
+        vae_loss = reconstruction_loss + kl_loss
+        
+        vae.add_loss(vae_loss)
+        
+        return vae
+    
+    def train(self, X, epochs=100, batch_size=32):
+        """Train VAE"""
+        self.model.compile(optimizer='adam')
+        
+        history = self.model.fit(
+            X, None,
+            epochs=epochs,
+            batch_size=batch_size,
+            validation_split=0.2
+        )
+        
+        return history
+```
+
+## Text and Image Processing
+
+### Text Embedding Reduction
+```python
+def reduce_text_embeddings(embeddings, method='umap'):
+    """Reduce dimensionality of text embeddings"""
+    if method == 'umap':
+        reducer = umap.UMAP(n_components=2,
+                          metric='cosine')
+    elif method == 'tsne':
+        reducer = TSNE(n_components=2,
+                      metric='cosine')
+    else:
+        raise ValueError(f"Unknown method: {method}")
+    
+    reduced_embeddings = reducer.fit_transform(embeddings)
+    return reduced_embeddings
+```
+
+### Image Feature Compression
+```python
+def compress_image_features(images, n_components=50):
+    """Compress image features using PCA"""
+    # Reshape images to 2D array
+    n_samples = len(images)
+    n_pixels = images[0].size
+    X = images.reshape(n_samples, n_pixels)
+    
+    # Apply PCA
+    pca = PCA(n_components=n_components)
+    X_compressed = pca.fit_transform(X)
+    
+    # Reconstruct images
+    X_reconstructed = pca.inverse_transform(X_compressed)
+    images_reconstructed = X_reconstructed.reshape(
+        n_samples, *images[0].shape)
+    
+    return images_reconstructed, pca
+```
+
+## Noise Reduction and Preprocessing
+
+### Signal Denoising
+```python
+class SignalDenoiser:
+    def __init__(self, n_components=None, threshold=0.95):
+        self.n_components = n_components
+        self.threshold = threshold
+        self.pca = None
+    
+    def denoise(self, signals):
+        """Denoise signals using PCA"""
+        # Determine number of components
+        if self.n_components is None:
+            pca_full = PCA()
+            pca_full.fit(signals)
+            
+            # Find components explaining threshold variance
+            cumsum = np.cumsum(pca_full.explained_variance_ratio_)
+            self.n_components = np.argmax(cumsum >= 
+                                        self.threshold) + 1
+        
+        # Apply PCA
+        self.pca = PCA(n_components=self.n_components)
+        signals_transformed = self.pca.fit_transform(signals)
+        
+        # Reconstruct signals
+        signals_denoised = self.pca.inverse_transform(
+            signals_transformed)
+        
+        return signals_denoised
+```
+
+### Feature Selection
+```python
+class DimensionalityBasedSelector:
+    def __init__(self, n_features=None, method='pca'):
+        self.n_features = n_features
+        self.method = method
+        self.selector = None
+        self.feature_importance = None
+    
+    def fit_transform(self, X):
+        """Select features based on dimensionality reduction"""
+        if self.method == 'pca':
+            # Use PCA for feature selection
+            self.selector = PCA(n_components=self.n_features)
+            X_transformed = self.selector.fit_transform(X)
+            
+            # Compute feature importance
+            self.feature_importance = np.abs(
+                self.selector.components_).sum(axis=0)
+            
+        elif self.method == 'kpca':
+            # Use Kernel PCA
+            self.selector = KernelPCA(
+                n_components=self.n_features,
+                kernel='rbf'
+            )
+            X_transformed = self.selector.fit_transform(X)
+            
+        return X_transformed
+    
+    def get_feature_ranking(self):
+        """Get ranking of original features"""
+        if self.feature_importance is None:
+            raise ValueError("Must call fit_transform first")
+        
+        return np.argsort(self.feature_importance)[::-1]
+```
+
+## Best Practices
+
+### 1. Method Selection
+- Choose t-SNE or UMAP for visualization
+- Use PCA for linear feature extraction
+- Apply autoencoders for complex data
+- Consider kernel methods for nonlinear data
+
+### 2. Parameter Tuning
+- Adjust perplexity in t-SNE
+- Set number of components based on variance
+- Consider reconstruction error
+- Monitor convergence
+
+### 3. Preprocessing
+- Scale features appropriately
+- Handle missing values
+- Remove outliers
+- Consider feature engineering
+
+## Common Challenges and Solutions
+
+### 1. Scalability
+- Use mini-batch processing
+- Implement approximate methods
+- Consider online learning
+- Use GPU acceleration
+
+### 2. Quality Assessment
+- Compare with original data
+- Use multiple metrics
+- Validate results
+- Consider domain knowledge
+
+### 3. Interpretability
+- Visualize transformations
+- Analyze feature importance
+- Consider sparse methods
+- Document assumptions
