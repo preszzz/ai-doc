@@ -12,14 +12,14 @@ export function Footer() {
             Build by{" "}
             <Link
               className="px-1 underline underline-offset-2"
-              href="/"
+              href="https://github.com/preszzz"
             >
-              nisabmohd
+              preszzz
             </Link>
             . The source code is available on{" "}
             <Link
               className="px-1 underline underline-offset-2"
-              href="/"
+              href="https://github.com/preszzz/ai-doc"
             >
               GitHub
             </Link>
@@ -39,14 +39,14 @@ export function FooterButtons() {
   return (
     <>
       <Link
-        href="/"
+        href="https://vercel.com"
         className={buttonVariants({ variant: "outline", size: "sm" })}
       >
         <TriangleIcon className="h-[0.8rem] w-4 mr-2 text-primary fill-current" />
         Deploy
       </Link>
       <Link
-        href="/"
+        href="https://github.com/sponsors/preszzz"
         className={buttonVariants({ variant: "outline", size: "sm" })}
       >
         <HeartIcon className="h-4 w-4 mr-2 text-red-600 fill-current" />
