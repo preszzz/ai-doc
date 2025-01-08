@@ -347,6 +347,15 @@ const ROUTES: EachRoute[] = [
             },
         ],
     },
+    {
+        title: "References",
+        href: "/references",
+        noLink: true,
+        items: [
+            { title: "Articles", href: "/articles" },
+            { title: "Books", href: "/books" }
+        ]
+    },
 ];
 
 export default ROUTES
