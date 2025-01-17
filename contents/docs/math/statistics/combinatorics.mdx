@@ -9,33 +9,33 @@ Combinatorics is the branch of mathematics dealing with counting, arrangement, a
 
 ### Counting Principles
 1. **Multiplication Principle**
-   - If task A can be done in $m$ ways and task B in $n$ ways, then tasks A and B can be done in $m \times n$ ways
-   ```python
-   def multiplication_principle(ways_per_task):
-       return np.prod(ways_per_task)
-   ```
+- If task A can be done in $m$ ways and task B in $n$ ways, then tasks A and B can be done in $m \times n$ ways
+```python
+def multiplication_principle(ways_per_task):
+    return np.prod(ways_per_task)
+```
 
 2. **Addition Principle**
-   - If task A can be done in $m$ ways and task B in $n$ ways (mutually exclusive), then either A or B can be done in $m + n$ ways
-   ```python
-   def addition_principle(ways_per_task):
-       return np.sum(ways_per_task)
-   ```
+- If task A can be done in $m$ ways and task B in $n$ ways (mutually exclusive), then either A or B can be done in $m + n$ ways
+```python
+def addition_principle(ways_per_task):
+    return np.sum(ways_per_task)
+```
 
 3. **Inclusion-Exclusion Principle**
-   - $|A \cup B| = |A| + |B| - |A \cap B|$
-   - General form: $|\cup_{i=1}^n A_i| = \sum_{k=1}^n (-1)^{k-1} \sum_{|I|=k} |\cap_{i \in I} A_i|$
-   ```python
-   def inclusion_exclusion(sets):
-       n = len(sets)
-       result = 0
-       for k in range(1, n + 1):
-           sign = (-1)**(k-1)
-           for subset in itertools.combinations(sets, k):
-               intersection = set.intersection(*subset)
-               result += sign * len(intersection)
-       return result
-   ```
+- $|A \cup B| = |A| + |B| - |A \cap B|$
+- General form: $|\cup_{i=1}^n A_i| = \sum_{k=1}^n (-1)^{k-1} \sum_{|I|=k} |\cap_{i \in I} A_i|$
+```python
+def inclusion_exclusion(sets):
+    n = len(sets)
+    result = 0
+    for k in range(1, n + 1):
+        sign = (-1)**(k-1)
+        for subset in itertools.combinations(sets, k):
+            intersection = set.intersection(*subset)
+            result += sign * len(intersection)
+    return result
+```
 
 ### Basic Concepts
 ```python

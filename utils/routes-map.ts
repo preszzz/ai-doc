@@ -40,6 +40,7 @@ const ROUTES: EachRoute[] = [
         href: "/math",
         noLink: true,
         items: [
+            { title: "Notation", href: "/notation" },
             { 
                 title: "01 Linear Algebra", 
                 href: "/linear-algebra",

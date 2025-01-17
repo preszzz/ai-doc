@@ -8,7 +8,7 @@ Differentiation is a fundamental concept in calculus that measures rates of chan
 ## Fundamentals of Derivatives
 
 ### Basic Concepts
-- Definition: $f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}$
+- Definition: $$f'(x) = \lim_{h\to 0} \frac{f(x + h) - f(x)}{h}$$
 - Geometric interpretation: Slope of tangent line
 - Notation variations:
   * Leibniz: $\frac{d}{dx}f(x)$
@@ -18,13 +18,13 @@ Differentiation is a fundamental concept in calculus that measures rates of chan
 
 ### Rules of Differentiation
 1. **Power Rule**: 
-  $$
-  \frac{d}{dx}x^n = nx^{n-1}
-  $$
+    $$
+    \frac{d}{dx}x^n = nx^{n-1}
+    $$
 2. **Product Rule**: 
-  $$
-  \frac{d}{dx}[f(x)g(x)] = f'(x)g(x) + f(x)g'(x)
-  $$
+    $$
+    \frac{d}{dx}[f(x)g(x)] = f'(x)g(x) + f(x)g'(x)
+    $$
 3. **Quotient Rule**: $\frac{d}{dx}[\frac{f(x)}{g(x)}] = \frac{f'(x)g(x) - f(x)g'(x)}{[g(x)]^2}$
 4. **Chain Rule**: $\frac{d}{dx}f(g(x)) = f'(g(x))g'(x)$
 
@@ -48,16 +48,16 @@ df_dx = numerical_derivative(f, x0)
 - Definition: $\frac{\partial f}{\partial x_i} = \lim_{h \to 0} \frac{f(x_1,...,x_i+h,...,x_n) - f(x_1,...,x_i,...,x_n)}{h}$
 - Mixed partials: $\frac{\partial^2 f}{\partial x \partial y} = \frac{\partial}{\partial x}(\frac{\partial f}{\partial y})$
 - Applications in ML:
-  ```python
-  def partial_derivatives(f, point, eps=1e-7):
-      n = len(point)
-      grads = np.zeros(n)
-      for i in range(n):
-          h = np.zeros(n)
-          h[i] = eps
-          grads[i] = (f(point + h) - f(point)) / eps
-      return grads
-  ```
+    ```python
+    def partial_derivatives(f, point, eps=1e-7):
+        n = len(point)
+        grads = np.zeros(n)
+        for i in range(n):
+            h = np.zeros(n)
+            h[i] = eps
+            grads[i] = (f(point + h) - f(point)) / eps
+        return grads
+    ```
 
 ### Gradient Vector
 - Definition: $\nabla f = [\frac{\partial f}{\partial x_1}, ..., \frac{\partial f}{\partial x_n}]^T$
@@ -65,16 +65,16 @@ df_dx = numerical_derivative(f, x0)
   * Direction of steepest increase
   * Perpendicular to level curves/surfaces
 - Gradient descent implementation:
-  ```python
-  def gradient_descent(f, grad_f, x0, lr=0.01, n_iter=1000):
-      x = x0
-      history = [x0]
-      for _ in range(n_iter):
-          grad = grad_f(x)
-          x = x - lr * grad
-          history.append(x)
-      return x, history
-  ```
+    ```python
+    def gradient_descent(f, grad_f, x0, lr=0.01, n_iter=1000):
+        x = x0
+        history = [x0]
+        for _ in range(n_iter):
+            grad = grad_f(x)
+            x = x - lr * grad
+            history.append(x)
+        return x, history
+    ```
 
 ## Higher-Order Derivatives
 
@@ -97,28 +97,28 @@ def hessian(f, x, eps=1e-7):
 
 ### Applications in ML
 1. **Neural Network Training**
-   ```python
-   def backpropagation_example(X, y, weights, activation):
-       # Forward pass
-       z = np.dot(X, weights)
-       a = activation(z)
-       
-       # Backward pass
-       error = a - y
-       gradient = np.dot(X.T, error * activation(z, derivative=True))
-       return gradient
-   ```
+    ```python
+    def backpropagation_example(X, y, weights, activation):
+        # Forward pass
+        z = np.dot(X, weights)
+        a = activation(z)
+        
+        # Backward pass
+        error = a - y
+        gradient = np.dot(X.T, error * activation(z, derivative=True))
+        return gradient
+    ```
 
 2. **Optimization Algorithms**
-   ```python
-   def newton_method(f, grad_f, hess_f, x0, n_iter=100):
-       x = x0
-       for _ in range(n_iter):
-           grad = grad_f(x)
-           hess = hess_f(x)
-           x = x - np.linalg.solve(hess, grad)
-       return x
-   ```
+    ```python
+    def newton_method(f, grad_f, hess_f, x0, n_iter=100):
+        x = x0
+        for _ in range(n_iter):
+            grad = grad_f(x)
+            hess = hess_f(x)
+            x = x - np.linalg.solve(hess, grad)
+        return x
+    ```
 
 ## Common Derivatives in ML
 
